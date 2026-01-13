@@ -5,14 +5,14 @@ export default async function EvidencePage({
 }: {
   params: { tx_id: string };
 }) {
-  const txId = decodeURIComponent(params.tx_id);
+  const txId = decodeURIComponent(params.tx_id).trim();
 
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
     .select(
       "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
     )
-    .eq("tx_id", txId)
+    .ilike("tx_id", `%${txId}%`)
     .order("created_at", { ascending: true });
 
   if (error || !data || data.length === 0) {
@@ -29,6 +29,9 @@ export default async function EvidencePage({
         <h1>Evidence not found</h1>
         <p style={{ opacity: 0.7, marginTop: 8 }}>
           This transaction ID does not resolve to a verified record.
+        </p>
+        <p style={{ opacity: 0.4, marginTop: 4, fontSize: 13 }}>
+          Requested ID: {txId}
         </p>
       </main>
     );
@@ -106,8 +109,7 @@ export default async function EvidencePage({
       <hr style={{ margin: "24px 0", opacity: 0.2 }} />
 
       <p style={{ opacity: 0.5, fontSize: 13 }}>
-        This page displays a neutral, read-only market observation.
-        It does not recommend, promote, or influence purchase decisions.
+        Neutral, read-only market evidence. No recommendation or promotion.
       </p>
     </main>
   );
