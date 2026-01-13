@@ -9,21 +9,14 @@ export default async function EvidencePage({
     .from("protocol_efficiency_ledger")
     .select("*")
     .eq("tx_id", params.tx_id)
-    .maybeSingle();
+    .order("created_at", { ascending: true });
 
-  if (error || !data) {
+  if (error || !data || data.length === 0) {
     return (
-      <main
-        style={{
-          padding: 24,
-          background: "black",
-          color: "white",
-          minHeight: "100vh",
-        }}
-      >
+      <main style={{ padding: 24, background: "black", color: "white" }}>
         <h2>Evidence not found</h2>
         <p style={{ opacity: 0.6 }}>
-          This transaction ID does not resolve to a single verified record.
+          This transaction ID does not resolve to a verified record.
         </p>
       </main>
     );
@@ -36,38 +29,77 @@ export default async function EvidencePage({
         background: "black",
         color: "white",
         minHeight: "100vh",
+        fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1>Evidence Record</h1>
+      <h1>Evidence Chain</h1>
 
-      <p>
-        <strong>Transaction ID:</strong> {data.tx_id}
-      </p>
-      <p>
-        <strong>Sector:</strong> {data.sector}
-      </p>
-      <p>
-        <strong>Item:</strong> {data.item}
-      </p>
-      <p>
-        <strong>Margin:</strong> {data.margin_pct}%
-      </p>
-      <p>
-        <strong>Status:</strong> {data.status}
-      </p>
-      <p>
-        <strong>Evidence Hash:</strong> {data.sha256_evidence_hash}
-      </p>
-      <p>
-        <strong>Timestamp:</strong>{" "}
-        {new Date(data.created_at).toLocaleString()}
+      <p style={{ opacity: 0.7, marginBottom: 24 }}>
+        Transaction ID: <strong>{params.tx_id}</strong>
       </p>
 
-      <hr style={{ margin: "24px 0", opacity: 0.2 }} />
+      {data.map((row, index) => (
+        <div
+          key={row.created_at + index}
+          style={{
+            background: "#0b0b0b",
+            borderRadius: "12px",
+            padding: "16px",
+            marginBottom: "16px",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <p style={{ fontWeight: 600, color: "#4fd1c5" }}>
+            Observation #{index + 1}
+          </p>
 
-      <p style={{ opacity: 0.6, fontSize: "14px" }}>
-        This page displays a neutral, read-only market observation.
-        It does not recommend, promote, or influence purchase decisions.
+          <p>Sector: {row.sector}</p>
+          <p>Item: {row.item}</p>
+
+          <p>
+            Margin:{" "}
+            <span
+              style={{
+                background: "#f59e0b",
+                color: "black",
+                padding: "2px 8px",
+                borderRadius: "6px",
+                fontWeight: 700,
+              }}
+            >
+              {row.margin_pct}%
+            </span>
+          </p>
+
+          <p>
+            Status:{" "}
+            <span
+              style={{
+                background: "#dc2626",
+                padding: "2px 8px",
+                borderRadius: "6px",
+                fontWeight: 700,
+              }}
+            >
+              {row.status}
+            </span>
+          </p>
+
+          <p style={{ opacity: 0.85 }}>
+            Evidence Hash: {row.sha256_evidence_hash}
+          </p>
+
+          <p style={{ opacity: 0.6, fontSize: "14px" }}>
+            Timestamp: {new Date(row.created_at).toLocaleString()}
+          </p>
+        </div>
+      ))}
+
+      <hr style={{ marginTop: 32, opacity: 0.2 }} />
+
+      <p style={{ opacity: 0.4, fontSize: "13px" }}>
+        This page displays a neutral, read-only evidence chain. It does not
+        recommend, promote, or influence purchase decisions.
       </p>
     </main>
   );
