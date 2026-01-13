@@ -1,13 +1,31 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default async function Home() {
-  const { data, error } = await supabase
-    .from("protocol_efficiency_ledger")
-    .select("tx_id, sector, created_at")
-    .order("created_at", { ascending: false })
-    .limit(1);
+export default function Home() {
+  const [record, setRecord] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLedger = async () => {
+      const { data, error } = await supabase
+        .from("protocol_efficiency_ledger")
+        .select(
+          "tx_id, sector, created_at, item, margin_pct, status, sha256_evidence_hash"
+        )
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (error) {
+        setError("Error reading ledger.");
+      } else if (data && data.length > 0) {
+        setRecord(data[0]);
+      }
+    };
+
+    fetchLedger();
+  }, []);
 
   return (
     <main style={{ padding: "24px", color: "white", background: "black" }}>
@@ -36,17 +54,22 @@ export default async function Home() {
 
       <h2>Latest Ledger Record</h2>
 
-      {error && <p>Error reading ledger.</p>}
+      {error && <p>{error}</p>}
 
-      {data && data.length > 0 && (
+      {!error && !record && <p>No ledger records found.</p>}
+
+      {record && (
         <div>
-          <p><strong>Transaction ID:</strong> {data[0].tx_id}</p>
-          <p><strong>Sector:</strong> {data[0].sector}</p>
-          <p><strong>Timestamp:</strong> {data[0].created_at}</p>
+          <p><strong>Transaction ID:</strong> {record.tx_id}</p>
+          <p><strong>Sector:</strong> {record.sector}</p>
+          <p><strong>Timestamp:</strong> {record.created_at}</p>
+
+          <p><strong>Item:</strong> {record.item}</p>
+          <p><strong>Margin (%):</strong> {record.margin_pct}</p>
+          <p><strong>Status:</strong> {record.status}</p>
+          <p><strong>Evidence Hash:</strong> {record.sha256_evidence_hash}</p>
         </div>
       )}
-
-      {!data && <p>No ledger records found.</p>}
     </main>
   );
 }
