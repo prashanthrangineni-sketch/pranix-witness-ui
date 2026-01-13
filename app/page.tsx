@@ -2,59 +2,12 @@
 
 import { supabase } from "../lib/supabaseClient";
 
-function StatusBadge({ status }: { status: string }) {
-  let color = "#666";
-
-  if (status === "OK") color = "green";
-  if (status === "WATCH") color = "orange";
-  if (status === "EXPOSE" || status === "KILL") color = "red";
-
-  return (
-    <span
-      style={{
-        padding: "4px 10px",
-        borderRadius: "6px",
-        backgroundColor: color,
-        color: "white",
-        fontWeight: "bold",
-      }}
-    >
-      {status}
-    </span>
-  );
-}
-
-function MarginBadge({ margin }: { margin: number }) {
-  let color = "red";
-
-  if (margin >= 40) color = "green";
-  else if (margin >= 15) color = "orange";
-
-  return (
-    <span
-      style={{
-        padding: "4px 10px",
-        borderRadius: "6px",
-        backgroundColor: color,
-        color: "white",
-        fontWeight: "bold",
-      }}
-    >
-      {margin}%
-    </span>
-  );
-}
-
 export default async function Home() {
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
-    .select(
-      "tx_id, sector, created_at, item, margin_pct, status, sha256_evidence_hash"
-    )
+    .select("tx_id, sector, item, margin_pct, status, created_at")
     .order("created_at", { ascending: false })
-    .limit(1);
-
-  const record = data && data.length > 0 ? data[0] : null;
+    .limit(5);
 
   return (
     <main style={{ padding: "24px", color: "white", background: "black" }}>
@@ -81,38 +34,53 @@ export default async function Home() {
 
       <hr />
 
-      <h2>Latest Ledger Record</h2>
+      <h2>Latest Evidence Timeline</h2>
 
       {error && <p>Error reading ledger.</p>}
 
-      {!record && <p>No ledger records found.</p>}
-
-      {record && (
-        <div style={{ lineHeight: "1.8" }}>
-          <p>
-            <strong>Transaction ID:</strong> {record.tx_id}
-          </p>
-          <p>
-            <strong>Sector:</strong> {record.sector}
-          </p>
-          <p>
-            <strong>Timestamp:</strong> {record.created_at}
-          </p>
-          <p>
-            <strong>Item:</strong> {record.item}
-          </p>
-          <p>
-            <strong>Margin:</strong>{" "}
-            <MarginBadge margin={record.margin_pct} />
-          </p>
-          <p>
-            <strong>Status:</strong>{" "}
-            <StatusBadge status={record.status} />
-          </p>
-          <p>
-            <strong>Evidence Hash:</strong> {record.sha256_evidence_hash}
-          </p>
-        </div>
+      {data && data.length > 0 ? (
+        data.map((row, index) => (
+          <div
+            key={index}
+            style={{
+              borderBottom: "1px solid #333",
+              paddingBottom: "12px",
+              marginBottom: "12px",
+            }}
+          >
+            <p><strong>Transaction ID:</strong> {row.tx_id}</p>
+            <p><strong>Sector:</strong> {row.sector}</p>
+            <p><strong>Item:</strong> {row.item}</p>
+            <p>
+              <strong>Margin:</strong>{" "}
+              <span
+                style={{
+                  background: "#f59e0b",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                  color: "black",
+                }}
+              >
+                {row.margin_pct}%
+              </span>
+            </p>
+            <p>
+              <strong>Status:</strong>{" "}
+              <span
+                style={{
+                  background: row.status === "EXPOSE" ? "#dc2626" : "#16a34a",
+                  padding: "4px 8px",
+                  borderRadius: "6px",
+                }}
+              >
+                {row.status}
+              </span>
+            </p>
+            <p><strong>Timestamp:</strong> {row.created_at}</p>
+          </div>
+        ))
+      ) : (
+        <p>No ledger records found.</p>
       )}
     </main>
   );
