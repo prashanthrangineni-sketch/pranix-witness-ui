@@ -27,14 +27,21 @@ export default async function Home() {
         <p>No ledger records found.</p>
       ) : (
         data.map((row) => (
-          <Link key={row.tx_id} href={`/evidence/${row.tx_id}`}>
-            <div
+          <Link
+            key={row.tx_id}
+            href={`/evidence/${encodeURIComponent(row.tx_id)}`}
+            passHref
+          >
+            <a
               style={{
+                display: "block",
                 marginTop: "16px",
                 padding: "16px",
                 borderRadius: "12px",
                 background: "#111",
                 border: "1px solid #333",
+                textDecoration: "none",
+                color: "white",
               }}
             >
               <p>
@@ -48,7 +55,7 @@ export default async function Home() {
               <p style={{ opacity: 0.6 }}>
                 Tap Transaction ID to view full evidence
               </p>
-            </div>
+            </a>
           </Link>
         ))
       )}
