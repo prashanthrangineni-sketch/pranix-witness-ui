@@ -3,9 +3,19 @@ import { supabase } from "@/app/lib/supabaseClient";
 export default async function EvidencePage({
   params,
 }: {
-  params: { tx_id: string };
+  params: { tx_id?: string };
 }) {
-  const txId = params.tx_id;
+  const txId = params?.tx_id;
+
+  if (!txId) {
+    return (
+      <main style={{ padding: "24px", background: "black", color: "white" }}>
+        <h1>Evidence not found</h1>
+        <p>This transaction ID does not resolve to a verified record.</p>
+        <p>Requested ID: undefined</p>
+      </main>
+    );
+  }
 
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
