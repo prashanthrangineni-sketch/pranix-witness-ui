@@ -59,7 +59,7 @@ export default async function Home() {
         {data &&
           data.map((row: LedgerRow) => (
             <div
-              key={row.tx_id + row.created_at}
+              key={row.tx_id}
               style={{
                 background: "#0b0b0b",
                 borderRadius: "12px",
@@ -72,10 +72,7 @@ export default async function Home() {
                 Transaction ID:{" "}
                 <Link
                   href={`/evidence/${encodeURIComponent(row.tx_id)}`}
-                  style={{
-                    color: "#4fd1c5",
-                    textDecoration: "underline",
-                  }}
+                  style={{ color: "#4fd1c5", textDecoration: "underline" }}
                 >
                   {row.tx_id}
                 </Link>
@@ -122,14 +119,16 @@ export default async function Home() {
                 {new Date(row.created_at).toLocaleString()}
               </p>
 
-              <p style={{ marginTop: "8px", fontSize: "13px", opacity: 0.4 }}>
+              <p style={{ fontSize: "13px", opacity: 0.4, marginTop: 6 }}>
                 Tap Transaction ID to view full evidence
               </p>
             </div>
           ))}
       </div>
 
-      <p style={{ opacity: 0.4, fontSize: "13px", marginTop: "40px" }}>
+      <hr style={{ margin: "24px 0", opacity: 0.2 }} />
+
+      <p style={{ opacity: 0.5, fontSize: "13px" }}>
         Ledger Authority: Supabase (Read-Only)
       </p>
     </main>
