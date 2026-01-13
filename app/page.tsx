@@ -1,26 +1,43 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default async function Home() {
-  const { data, error } = await supabase
-    .from("protocol_efficiency_ledger")
-    .select(
-      "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
-    )
-    .order("created_at", { ascending: false })
-    .limit(10);
+export default function Home() {
+  const [sectorFilter, setSectorFilter] = useState("all");
+  const [data, setData] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLedger = async () => {
+      let query = supabase
+        .from("protocol_efficiency_ledger")
+        .select(
+          "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
+        )
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (sectorFilter !== "all") {
+        query = query.eq("sector", sectorFilter);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        setError("Unable to read ledger.");
+        setData([]);
+      } else {
+        setError(null);
+        setData(data || []);
+      }
+    };
+
+    fetchLedger();
+  }, [sectorFilter]);
 
   return (
-    <main
-      style={{
-        padding: "24px",
-        color: "white",
-        background: "black",
-        minHeight: "100vh",
-        fontFamily: "system-ui, sans-serif",
-      }}
-    >
+    <main style={{ padding: "24px", color: "white", background: "black" }}>
       <h1>Cart2Save</h1>
 
       <p>
@@ -62,24 +79,34 @@ export default async function Home() {
 
       <h2>Evidence Timeline</h2>
 
-      {error && <p>Unable to read ledger.</p>}
+      <label>
+        Filter by sector:&nbsp;
+        <select
+          value={sectorFilter}
+          onChange={(e) => setSectorFilter(e.target.value)}
+          style={{ padding: "6px", marginBottom: "20px" }}
+        >
+          <option value="all">All</option>
+          <option value="grocery">grocery</option>
+          <option value="food">food</option>
+          <option value="Food/Grocery">Food/Grocery</option>
+        </select>
+      </label>
 
-      {!error && (!data || data.length === 0) && (
-        <p>No ledger records found.</p>
-      )}
+      <br />
+      <br />
 
-      {data &&
+      {error && <p>{error}</p>}
+
+      {!error && data.length === 0 && <p>No ledger records found.</p>}
+
+      {!error &&
         data.map((row) => (
           <div key={row.tx_id} style={{ marginBottom: "32px" }}>
-            <p>
-              <strong>Transaction ID:</strong> {row.tx_id}
-            </p>
-            <p>
-              <strong>Sector:</strong> {row.sector}
-            </p>
-            <p>
-              <strong>Item:</strong> {row.item}
-            </p>
+            <p><strong>Transaction ID:</strong> {row.tx_id}</p>
+            <p><strong>Sector:</strong> {row.sector}</p>
+            <p><strong>Item:</strong> {row.item}</p>
+
             <p>
               <strong>Margin:</strong>{" "}
               <span
@@ -94,6 +121,7 @@ export default async function Home() {
                 {row.margin_pct}%
               </span>
             </p>
+
             <p>
               <strong>Status:</strong>{" "}
               <span
@@ -107,9 +135,8 @@ export default async function Home() {
                 {row.status}
               </span>
             </p>
-            <p>
-              <strong>Evidence Hash:</strong> {row.sha256_evidence_hash}
-            </p>
+
+            <p><strong>Evidence Hash:</strong> {row.sha256_evidence_hash}</p>
             <p>
               <strong>Timestamp:</strong>{" "}
               {new Date(row.created_at).toLocaleString()}
