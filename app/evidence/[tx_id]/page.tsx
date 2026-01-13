@@ -107,4 +107,6 @@ export default async function EvidencePage({
         This page displays a neutral, read-only market observation.
         It does not recommend, promote, or influence purchase decisions.
       </p>
-    </
+    </main>
+  );
+}
