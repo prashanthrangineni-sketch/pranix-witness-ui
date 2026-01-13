@@ -6,10 +6,10 @@ export default async function Home() {
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
     .select(
-      "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
+      "tx_id, sector, item, margin_pct, status, sha256_evidence, created_at"
     )
     .order("created_at", { ascending: false })
-    .limit(5);
+    .limit(10);
 
   return (
     <main
@@ -17,8 +17,7 @@ export default async function Home() {
         padding: "24px",
         color: "white",
         background: "black",
-        minHeight: "100vh",
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont",
+        fontFamily: "system-ui, sans-serif",
       }}
     >
       {/* HEADER */}
@@ -46,29 +45,43 @@ export default async function Home() {
 
       <hr />
 
+      {/* STATUS LEGEND — OPTION 2 */}
+      <h2>Evidence Status Legend</h2>
+
+      <ul>
+        <li>
+          <strong>EXPOSE</strong> — The observed margin exceeds the neutral
+          disclosure threshold. This is a visibility signal, not a
+          recommendation.
+        </li>
+        <li>
+          <strong>Margin (%)</strong> — Certified percentage difference between
+          observed market price and reference benchmark.
+        </li>
+        <li>
+          <strong>Evidence Hash</strong> — Cryptographic reference used to verify
+          integrity of the recorded observation.
+        </li>
+      </ul>
+
+      <hr />
+
       {/* TIMELINE */}
       <h2>Evidence Timeline</h2>
 
-      {error && <p>❌ Error reading ledger.</p>}
+      {error && <p>Unable to read ledger.</p>}
 
-      {data && data.length > 0 ? (
+      {!data || data.length === 0 ? (
+        <p>No ledger records found.</p>
+      ) : (
         data.map((row, index) => (
-          <div
-            key={index}
-            style={{
-              borderTop: "1px solid #444",
-              paddingTop: "16px",
-              marginTop: "16px",
-            }}
-          >
+          <div key={index} style={{ marginBottom: "32px" }}>
             <p>
               <strong>Transaction ID:</strong> {row.tx_id}
             </p>
-
             <p>
               <strong>Sector:</strong> {row.sector}
             </p>
-
             <p>
               <strong>Item:</strong> {row.item}
             </p>
@@ -78,9 +91,9 @@ export default async function Home() {
               <span
                 style={{
                   background: "#f59e0b",
+                  color: "black",
                   padding: "4px 10px",
                   borderRadius: "6px",
-                  color: "black",
                   fontWeight: "bold",
                 }}
               >
@@ -92,11 +105,9 @@ export default async function Home() {
               <strong>Status:</strong>{" "}
               <span
                 style={{
-                  background:
-                    row.status === "EXPOSE" ? "#dc2626" : "#16a34a",
+                  background: "#dc2626",
                   padding: "4px 10px",
                   borderRadius: "6px",
-                  color: "white",
                   fontWeight: "bold",
                 }}
               >
@@ -105,18 +116,17 @@ export default async function Home() {
             </p>
 
             <p>
-              <strong>Evidence Hash:</strong>{" "}
-              {row.sha256_evidence_hash}
+              <strong>Evidence Hash:</strong> {row.sha256_evidence}
             </p>
 
             <p>
               <strong>Timestamp:</strong>{" "}
               {new Date(row.created_at).toLocaleString()}
             </p>
+
+            <hr />
           </div>
         ))
-      ) : (
-        <p>No ledger records found.</p>
       )}
     </main>
   );
