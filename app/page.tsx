@@ -1,32 +1,44 @@
-export default function Home() {
-  return (
-    <main style={{ padding: "40px", fontFamily: "system-ui" }}>
-      <h1>Cart2Save</h1>
+import { createClient } from "@supabase/supabase-js";
 
-      <p style={{ marginTop: "12px", maxWidth: "600px" }}>
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
+export default async function Home() {
+  const { data, error } = await supabase
+    .from("protocol_efficiency_ledger")
+    .select("tx_id, status, scan_timestamp")
+    .order("scan_timestamp", { ascending: false })
+    .limit(1);
+
+  return (
+    <main style={{ padding: "24px", fontFamily: "monospace" }}>
+      <h1>Cart2Save — Evidence Witness</h1>
+
+      <p>
         Cart2Save is a neutral commerce intelligence platform.
         It does not recommend, promote, or optimise prices.
       </p>
 
-      <p style={{ marginTop: "12px", maxWidth: "600px" }}>
-        The system displays verified market evidence across food,
-        groceries, mobility, fashion, pharmacy, electronics,
-        and home services.
-      </p>
+      <hr />
 
-      <hr style={{ margin: "24px 0" }} />
+      <h2>Latest Ledger Record</h2>
 
-      <h2>System Status</h2>
+      {error && <p>Error reading ledger.</p>}
 
-      <ul>
-        <li>Mode: Neutral Evidence Layer</li>
-        <li>Execution: Human-Gated</li>
-        <li>Ledger Authority: Supabase (Read-Only)</li>
-      </ul>
+      {data && data.length > 0 ? (
+        <pre>{JSON.stringify(data[0], null, 2)}</pre>
+      ) : (
+        <p>No ledger records available.</p>
+      )}
 
-      <p style={{ marginTop: "24px", fontSize: "14px", color: "#666" }}>
-        Pranix does not help users save money.
-        It helps users see verified cost reality.
+      <hr />
+
+      <p>
+        System Mode: Neutral Evidence Layer<br />
+        Execution: Human-Gated<br />
+        Ledger Authority: Supabase (Read-Only)
       </p>
     </main>
   );
