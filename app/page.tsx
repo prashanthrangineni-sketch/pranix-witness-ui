@@ -1,31 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function Home() {
-  const [record, setRecord] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
+function StatusBadge({ status }: { status: string }) {
+  let color = "#666";
 
-  useEffect(() => {
-    const fetchLedger = async () => {
-      const { data, error } = await supabase
-        .from("protocol_efficiency_ledger")
-        .select(
-          "tx_id, sector, created_at, item, margin_pct, status, sha256_evidence_hash"
-        )
-        .order("created_at", { ascending: false })
-        .limit(1);
+  if (status === "OK") color = "green";
+  if (status === "WATCH") color = "orange";
+  if (status === "EXPOSE" || status === "KILL") color = "red";
 
-      if (error) {
-        setError("Error reading ledger.");
-      } else if (data && data.length > 0) {
-        setRecord(data[0]);
-      }
-    };
+  return (
+    <span
+      style={{
+        padding: "4px 10px",
+        borderRadius: "6px",
+        backgroundColor: color,
+        color: "white",
+        fontWeight: "bold",
+      }}
+    >
+      {status}
+    </span>
+  );
+}
 
-    fetchLedger();
-  }, []);
+function MarginBadge({ margin }: { margin: number }) {
+  let color = "red";
+
+  if (margin >= 40) color = "green";
+  else if (margin >= 15) color = "orange";
+
+  return (
+    <span
+      style={{
+        padding: "4px 10px",
+        borderRadius: "6px",
+        backgroundColor: color,
+        color: "white",
+        fontWeight: "bold",
+      }}
+    >
+      {margin}%
+    </span>
+  );
+}
+
+export default async function Home() {
+  const { data, error } = await supabase
+    .from("protocol_efficiency_ledger")
+    .select(
+      "tx_id, sector, created_at, item, margin_pct, status, sha256_evidence_hash"
+    )
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const record = data && data.length > 0 ? data[0] : null;
 
   return (
     <main style={{ padding: "24px", color: "white", background: "black" }}>
@@ -54,20 +83,35 @@ export default function Home() {
 
       <h2>Latest Ledger Record</h2>
 
-      {error && <p>{error}</p>}
+      {error && <p>Error reading ledger.</p>}
 
-      {!error && !record && <p>No ledger records found.</p>}
+      {!record && <p>No ledger records found.</p>}
 
       {record && (
-        <div>
-          <p><strong>Transaction ID:</strong> {record.tx_id}</p>
-          <p><strong>Sector:</strong> {record.sector}</p>
-          <p><strong>Timestamp:</strong> {record.created_at}</p>
-
-          <p><strong>Item:</strong> {record.item}</p>
-          <p><strong>Margin (%):</strong> {record.margin_pct}</p>
-          <p><strong>Status:</strong> {record.status}</p>
-          <p><strong>Evidence Hash:</strong> {record.sha256_evidence_hash}</p>
+        <div style={{ lineHeight: "1.8" }}>
+          <p>
+            <strong>Transaction ID:</strong> {record.tx_id}
+          </p>
+          <p>
+            <strong>Sector:</strong> {record.sector}
+          </p>
+          <p>
+            <strong>Timestamp:</strong> {record.created_at}
+          </p>
+          <p>
+            <strong>Item:</strong> {record.item}
+          </p>
+          <p>
+            <strong>Margin:</strong>{" "}
+            <MarginBadge margin={record.margin_pct} />
+          </p>
+          <p>
+            <strong>Status:</strong>{" "}
+            <StatusBadge status={record.status} />
+          </p>
+          <p>
+            <strong>Evidence Hash:</strong> {record.sha256_evidence_hash}
+          </p>
         </div>
       )}
     </main>
