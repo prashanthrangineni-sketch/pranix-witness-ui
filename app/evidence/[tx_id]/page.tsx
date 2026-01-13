@@ -1,38 +1,35 @@
 import { supabase } from "../../../lib/supabaseClient";
 
-export default async function EvidencePage({
-  params,
-}: {
-  params: { tx_id: string };
-}) {
-  const txId = decodeURIComponent(params.tx_id).trim();
+type PageProps = {
+  params: {
+    tx_id: string;
+  };
+};
+
+export default async function EvidencePage({ params }: PageProps) {
+  const txId = params?.tx_id;
+
+  if (!txId) {
+    return (
+      <main style={{ padding: 40, background: "black", color: "white" }}>
+        <h1>Evidence not found</h1>
+        <p>Requested ID: undefined</p>
+      </main>
+    );
+  }
 
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
-    .select(
-      "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
-    )
-    .ilike("tx_id", `%${txId}%`)
-    .order("created_at", { ascending: true });
+    .select("*")
+    .eq("tx_id", txId)
+    .single();
 
-  if (error || !data || data.length === 0) {
+  if (error || !data) {
     return (
-      <main
-        style={{
-          padding: 24,
-          background: "black",
-          color: "white",
-          minHeight: "100vh",
-          fontFamily: "system-ui, sans-serif",
-        }}
-      >
+      <main style={{ padding: 40, background: "black", color: "white" }}>
         <h1>Evidence not found</h1>
-        <p style={{ opacity: 0.7, marginTop: 8 }}>
-          This transaction ID does not resolve to a verified record.
-        </p>
-        <p style={{ opacity: 0.4, marginTop: 4, fontSize: 13 }}>
-          Requested ID: {txId}
-        </p>
+        <p>This transaction ID does not resolve to a verified record.</p>
+        <p style={{ opacity: 0.6 }}>Requested ID: {txId}</p>
       </main>
     );
   }
@@ -40,76 +37,42 @@ export default async function EvidencePage({
   return (
     <main
       style={{
-        padding: 24,
+        padding: 40,
         background: "black",
         color: "white",
         minHeight: "100vh",
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1 style={{ marginBottom: 20 }}>Evidence Chain</h1>
+      <h1>Evidence Record</h1>
 
-      {data.map((row, index) => (
-        <div
-          key={`${row.tx_id}-${index}`}
-          style={{
-            background: "#0b0b0b",
-            borderRadius: 12,
-            padding: 16,
-            marginBottom: 16,
-            border: "1px solid rgba(255,255,255,0.08)",
-          }}
-        >
-          <p style={{ color: "#4fd1c5", fontWeight: 600 }}>
-            Transaction ID: {row.tx_id}
-          </p>
-
-          <p>Sector: {row.sector}</p>
-          <p>Item: {row.item}</p>
-
-          <p>
-            Margin:{" "}
-            <span
-              style={{
-                background: "#f59e0b",
-                color: "black",
-                padding: "2px 8px",
-                borderRadius: 6,
-                fontWeight: 700,
-              }}
-            >
-              {row.margin_pct}%
-            </span>
-          </p>
-
-          <p>
-            Status:{" "}
-            <span
-              style={{
-                background: "#dc2626",
-                padding: "2px 8px",
-                borderRadius: 6,
-                fontWeight: 700,
-              }}
-            >
-              {row.status}
-            </span>
-          </p>
-
-          <p style={{ opacity: 0.85 }}>
-            Evidence Hash: {row.sha256_evidence_hash}
-          </p>
-
-          <p style={{ opacity: 0.6, fontSize: 14 }}>
-            Timestamp: {new Date(row.created_at).toLocaleString()}
-          </p>
-        </div>
-      ))}
+      <p>
+        <strong>Transaction ID:</strong> {data.tx_id}
+      </p>
+      <p>
+        <strong>Sector:</strong> {data.sector}
+      </p>
+      <p>
+        <strong>Item:</strong> {data.item}
+      </p>
+      <p>
+        <strong>Margin:</strong> {data.margin_pct}%
+      </p>
+      <p>
+        <strong>Status:</strong> {data.status}
+      </p>
+      <p>
+        <strong>Evidence Hash:</strong> {data.sha256_evidence_hash}
+      </p>
+      <p>
+        <strong>Timestamp:</strong>{" "}
+        {new Date(data.created_at).toLocaleString()}
+      </p>
 
       <hr style={{ margin: "24px 0", opacity: 0.2 }} />
 
       <p style={{ opacity: 0.5, fontSize: 13 }}>
-        Neutral, read-only market evidence. No recommendation or promotion.
+        Ledger Authority: Supabase (Read-Only)
       </p>
     </main>
   );
