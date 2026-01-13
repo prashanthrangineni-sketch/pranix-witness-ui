@@ -6,7 +6,7 @@ export default async function Home() {
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
     .select(
-      "tx_id, sector, item, margin_pct, status, sha256_evidence, created_at"
+      "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
     )
     .order("created_at", { ascending: false })
     .limit(10);
@@ -17,10 +17,10 @@ export default async function Home() {
         padding: "24px",
         color: "white",
         background: "black",
+        minHeight: "100vh",
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      {/* HEADER */}
       <h1>Cart2Save</h1>
 
       <p>
@@ -35,7 +35,6 @@ export default async function Home() {
 
       <hr />
 
-      {/* SYSTEM STATUS */}
       <h2>System Status</h2>
       <ul>
         <li>Mode: Neutral Evidence Layer</li>
@@ -45,37 +44,33 @@ export default async function Home() {
 
       <hr />
 
-      {/* STATUS LEGEND — OPTION 2 */}
       <h2>Evidence Status Legend</h2>
-
-      <ul>
-        <li>
-          <strong>EXPOSE</strong> — The observed margin exceeds the neutral
-          disclosure threshold. This is a visibility signal, not a
-          recommendation.
-        </li>
-        <li>
-          <strong>Margin (%)</strong> — Certified percentage difference between
-          observed market price and reference benchmark.
-        </li>
-        <li>
-          <strong>Evidence Hash</strong> — Cryptographic reference used to verify
-          integrity of the recorded observation.
-        </li>
-      </ul>
+      <p>
+        <strong>EXPOSE</strong> — The observed margin exceeds the neutral
+        disclosure threshold. This is a visibility signal, not a recommendation.
+      </p>
+      <p>
+        <strong>Margin (%)</strong> — Certified percentage difference between
+        observed market price and reference benchmark.
+      </p>
+      <p>
+        <strong>Evidence Hash</strong> — Cryptographic reference used to verify
+        integrity of the recorded observation.
+      </p>
 
       <hr />
 
-      {/* TIMELINE */}
       <h2>Evidence Timeline</h2>
 
       {error && <p>Unable to read ledger.</p>}
 
-      {!data || data.length === 0 ? (
+      {!error && (!data || data.length === 0) && (
         <p>No ledger records found.</p>
-      ) : (
-        data.map((row, index) => (
-          <div key={index} style={{ marginBottom: "32px" }}>
+      )}
+
+      {data &&
+        data.map((row) => (
+          <div key={row.tx_id} style={{ marginBottom: "32px" }}>
             <p>
               <strong>Transaction ID:</strong> {row.tx_id}
             </p>
@@ -85,40 +80,36 @@ export default async function Home() {
             <p>
               <strong>Item:</strong> {row.item}
             </p>
-
             <p>
               <strong>Margin:</strong>{" "}
               <span
                 style={{
                   background: "#f59e0b",
-                  color: "black",
                   padding: "4px 10px",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
+                  color: "black",
                   fontWeight: "bold",
                 }}
               >
                 {row.margin_pct}%
               </span>
             </p>
-
             <p>
               <strong>Status:</strong>{" "}
               <span
                 style={{
                   background: "#dc2626",
                   padding: "4px 10px",
-                  borderRadius: "6px",
+                  borderRadius: "8px",
                   fontWeight: "bold",
                 }}
               >
                 {row.status}
               </span>
             </p>
-
             <p>
-              <strong>Evidence Hash:</strong> {row.sha256_evidence}
+              <strong>Evidence Hash:</strong> {row.sha256_evidence_hash}
             </p>
-
             <p>
               <strong>Timestamp:</strong>{" "}
               {new Date(row.created_at).toLocaleString()}
@@ -126,8 +117,7 @@ export default async function Home() {
 
             <hr />
           </div>
-        ))
-      )}
+        ))}
     </main>
   );
 }
