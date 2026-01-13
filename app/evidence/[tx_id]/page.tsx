@@ -5,12 +5,14 @@ export default async function EvidencePage({
 }: {
   params: { tx_id: string };
 }) {
-  const normalizedTxId = params.tx_id.trim();
+  const txId = decodeURIComponent(params.tx_id);
 
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
-    .select("*")
-    .eq("tx_id", normalizedTxId)
+    .select(
+      "tx_id, sector, item, margin_pct, status, sha256_evidence_hash, created_at"
+    )
+    .eq("tx_id", txId)
     .order("created_at", { ascending: true });
 
   if (error || !data || data.length === 0) {
@@ -24,7 +26,7 @@ export default async function EvidencePage({
           fontFamily: "system-ui, sans-serif",
         }}
       >
-        <h2>Evidence not found</h2>
+        <h1>Evidence not found</h1>
         <p style={{ opacity: 0.7, marginTop: 8 }}>
           This transaction ID does not resolve to a verified record.
         </p>
@@ -42,11 +44,11 @@ export default async function EvidencePage({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1 style={{ marginBottom: 16 }}>Evidence Chain</h1>
+      <h1 style={{ marginBottom: 20 }}>Evidence Chain</h1>
 
-      {data.map((row) => (
+      {data.map((row, index) => (
         <div
-          key={row.id}
+          key={`${row.tx_id}-${index}`}
           style={{
             background: "#0b0b0b",
             borderRadius: 12,
