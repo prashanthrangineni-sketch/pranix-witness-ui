@@ -3,18 +3,14 @@ import { supabase } from "@/app/lib/supabaseClient";
 export default async function EvidencePage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: { tx_id?: string };
 }) {
-  const txId =
-    typeof searchParams?.tx_id === "string"
-      ? searchParams.tx_id
-      : undefined;
+  const txId = searchParams?.tx_id;
 
   if (!txId) {
     return (
-      <main style={{ padding: "24px", background: "black", color: "white" }}>
+      <main style={pageStyle}>
         <h1>Evidence not found</h1>
-        <p>This transaction ID does not resolve to a verified record.</p>
         <p>Requested ID: undefined</p>
       </main>
     );
@@ -28,7 +24,7 @@ export default async function EvidencePage({
 
   if (error || !data) {
     return (
-      <main style={{ padding: "24px", background: "black", color: "white" }}>
+      <main style={pageStyle}>
         <h1>Evidence not found</h1>
         <p>This transaction ID does not resolve to a verified record.</p>
         <p>Requested ID: {txId}</p>
@@ -37,21 +33,56 @@ export default async function EvidencePage({
   }
 
   return (
-    <main style={{ padding: "24px", background: "black", color: "white" }}>
+    <main style={pageStyle}>
       <h1>Evidence Record</h1>
 
-      <p><strong>Transaction ID:</strong> {data.tx_id}</p>
-      <p><strong>Sector:</strong> {data.sector}</p>
-      <p><strong>Item:</strong> {data.item}</p>
-      <p><strong>Margin:</strong> {data.margin_pct}%</p>
-      <p><strong>Status:</strong> EXPOSE</p>
-      <p><strong>Evidence Hash:</strong> {data.evidence_hash}</p>
-      <p><strong>Timestamp:</strong> {data.created_at}</p>
+      <div style={cardStyle}>
+        <p>
+          <strong>Transaction ID:</strong>{" "}
+          <span style={{ color: "#4fd1c5" }}>{data.tx_id}</span>
+        </p>
 
-      <hr />
-      <p style={{ opacity: 0.6 }}>
-        Ledger Authority: Supabase (Read-Only)
-      </p>
+        <p>
+          <strong>Sector:</strong> {data.sector}
+        </p>
+
+        <p>
+          <strong>Item:</strong> {data.item ?? "—"}
+        </p>
+
+        <p>
+          <strong>Margin:</strong> {data.margin_pct}%
+        </p>
+
+        <p style={{ color: "red", fontWeight: "bold" }}>
+          Status: EXPOSE
+        </p>
+
+        <p style={{ opacity: 0.7, fontSize: "12px" }}>
+          Evidence Hash: {data.evidence_hash ?? "—"}
+        </p>
+
+        <p style={{ opacity: 0.7, fontSize: "12px" }}>
+          Timestamp: {new Date(data.created_at).toLocaleString()}
+        </p>
+      </div>
     </main>
   );
 }
+
+/* ---------- styles ---------- */
+
+const pageStyle = {
+  padding: "24px",
+  background: "black",
+  color: "white",
+  minHeight: "100vh",
+};
+
+const cardStyle = {
+  background: "#111",
+  border: "1px solid #222",
+  borderRadius: "12px",
+  padding: "16px",
+  maxWidth: "600px",
+};
