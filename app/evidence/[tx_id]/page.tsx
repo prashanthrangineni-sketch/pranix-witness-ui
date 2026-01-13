@@ -1,11 +1,14 @@
 import { supabase } from "@/app/lib/supabaseClient";
 
 export default async function EvidencePage({
-  params,
+  searchParams,
 }: {
-  params: { tx_id?: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const txId = params?.tx_id;
+  const txId =
+    typeof searchParams?.tx_id === "string"
+      ? searchParams.tx_id
+      : undefined;
 
   if (!txId) {
     return (
