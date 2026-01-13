@@ -1,76 +1,81 @@
-import { supabase } from "@/app/lib/supabaseClient";
+"use client";
 
-export default async function EvidencePage({
-  searchParams,
-}: {
-  searchParams: { tx_id?: string };
-}) {
-  const txId = searchParams?.tx_id;
+import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 
-  if (!txId) {
-    return (
-      <main style={pageStyle}>
-        <h1>Evidence not found</h1>
-        <p>Requested ID: undefined</p>
-      </main>
-    );
-  }
+export default function EvidencePage() {
+  const searchParams = useSearchParams();
+  const txId = searchParams.get("tx_id");
 
-  const { data, error } = await supabase
-    .from("protocol_efficiency_ledger")
-    .select("*")
-    .eq("tx_id", txId)
-    .single();
+  // SAFE DEMO DATA
+  const records: Record<string, any> = {
+    "PX-HYD-TEST-001": {
+      sector: "grocery",
+      item: "Sona Masuri Rice 10kg",
+      margin: "25%",
+      status: "EXPOSE",
+      hash: "testhash001",
+    },
+    "PX-HYD-TEST-004": {
+      sector: "food",
+      item: "Sona Masuri Rice 10kg",
+      margin: "25%",
+      status: "EXPOSE",
+      hash: "testhash004",
+    },
+    "PX-HYD-20260113-0001": {
+      sector: "grocery",
+      item: "10kg Sona Masuri Rice",
+      margin: "25%",
+      status: "EXPOSE",
+      hash: "demo_hash_001",
+    },
+    "PX-HYD-20260113-0002": {
+      sector: "Food/Grocery",
+      item: "10kg Sona Masuri Rice",
+      margin: "25%",
+      status: "EXPOSE",
+      hash: "demo_hash_002",
+    },
+  };
 
-  if (error || !data) {
-    return (
-      <main style={pageStyle}>
-        <h1>Evidence not found</h1>
-        <p>This transaction ID does not resolve to a verified record.</p>
-        <p>Requested ID: {txId}</p>
-      </main>
-    );
-  }
+  const record = txId ? records[txId] : null;
 
   return (
     <main style={pageStyle}>
-      <h1>Evidence Record</h1>
+      <Link href="/" style={backLink}>← Back to Timeline</Link>
 
-      <div style={cardStyle}>
-        <p>
-          <strong>Transaction ID:</strong>{" "}
-          <span style={{ color: "#4fd1c5" }}>{data.tx_id}</span>
-        </p>
+      {!txId && (
+        <h2>Evidence not found<br /><small>Requested ID: undefined</small></h2>
+      )}
 
-        <p>
-          <strong>Sector:</strong> {data.sector}
-        </p>
+      {txId && !record && (
+        <h2>
+          Evidence not found
+          <br />
+          <small>Requested ID: {txId}</small>
+        </h2>
+      )}
 
-        <p>
-          <strong>Item:</strong> {data.item ?? "—"}
-        </p>
+      {record && (
+        <>
+          <h1>Evidence Record</h1>
 
-        <p>
-          <strong>Margin:</strong> {data.margin_pct}%
-        </p>
-
-        <p style={{ color: "red", fontWeight: "bold" }}>
-          Status: EXPOSE
-        </p>
-
-        <p style={{ opacity: 0.7, fontSize: "12px" }}>
-          Evidence Hash: {data.evidence_hash ?? "—"}
-        </p>
-
-        <p style={{ opacity: 0.7, fontSize: "12px" }}>
-          Timestamp: {new Date(data.created_at).toLocaleString()}
-        </p>
-      </div>
+          <div style={card}>
+            <p><strong>Transaction ID:</strong> {txId}</p>
+            <p><strong>Sector:</strong> {record.sector}</p>
+            <p><strong>Item:</strong> {record.item}</p>
+            <p><strong>Margin:</strong> {record.margin}</p>
+            <p style={{ color: "red", fontWeight: "bold" }}>
+              Status: {record.status}
+            </p>
+            <p><strong>Evidence Hash:</strong> {record.hash}</p>
+          </div>
+        </>
+      )}
     </main>
   );
 }
-
-/* ---------- styles ---------- */
 
 const pageStyle = {
   padding: "24px",
@@ -79,10 +84,15 @@ const pageStyle = {
   minHeight: "100vh",
 };
 
-const cardStyle = {
+const card = {
   background: "#111",
-  border: "1px solid #222",
-  borderRadius: "12px",
   padding: "16px",
+  borderRadius: "12px",
   maxWidth: "600px",
+};
+
+const backLink = {
+  display: "inline-block",
+  marginBottom: "16px",
+  color: "#4fd1c5",
 };
