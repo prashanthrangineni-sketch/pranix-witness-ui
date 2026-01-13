@@ -30,7 +30,9 @@ export default async function Home() {
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1 style={{ fontSize: "28px", marginBottom: "12px" }}>Cart2Save</h1>
+      <h1 style={{ fontSize: "28px", marginBottom: "12px" }}>
+        Cart2Save
+      </h1>
 
       <p style={{ opacity: 0.85 }}>
         Cart2Save is a neutral commerce intelligence platform. It does not
@@ -66,8 +68,17 @@ export default async function Home() {
                 border: "1px solid rgba(255,255,255,0.08)",
               }}
             >
-              <p style={{ color: "#4fd1c5", fontWeight: 600 }}>
-                Transaction ID: {row.tx_id}
+              <p style={{ fontWeight: 600 }}>
+                Transaction ID:{" "}
+                <a
+                  href={`/evidence/${row.tx_id}`}
+                  style={{
+                    color: "#4fd1c5",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {row.tx_id}
+                </a>
               </p>
 
               <p>Sector: {row.sector}</p>
