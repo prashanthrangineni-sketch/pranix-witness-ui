@@ -1,6 +1,4 @@
-"use client";
-
-import { supabase } from "./lib/supabaseClient";
+import { supabase } from "@/app/lib/supabaseClient";
 import Link from "next/link";
 
 export default async function Home() {
@@ -23,17 +21,13 @@ export default async function Home() {
 
       <h2>Evidence Timeline (Latest 20)</h2>
 
-      {error && <p>Unable to read ledger.</p>}
+      {error && <p>Ledger read error.</p>}
 
       {!data || data.length === 0 ? (
         <p>No ledger records found.</p>
       ) : (
         data.map((row) => (
-          <Link
-            key={row.tx_id}
-            href={`/evidence/${row.tx_id}`}
-            style={{ textDecoration: "none" }}
-          >
+          <Link key={row.tx_id} href={`/evidence/${row.tx_id}`}>
             <div
               style={{
                 marginTop: "16px",
@@ -49,12 +43,8 @@ export default async function Home() {
               </p>
               <p>Sector: {row.sector}</p>
               <p>Item: {row.item}</p>
-              <p>
-                Margin: <strong>{row.margin_pct}%</strong>
-              </p>
-              <p>
-                Status: <span style={{ color: "red" }}>EXPOSE</span>
-              </p>
+              <p>Margin: {row.margin_pct}%</p>
+              <p style={{ color: "red" }}>Status: EXPOSE</p>
               <p style={{ opacity: 0.6 }}>
                 Tap Transaction ID to view full evidence
               </p>
