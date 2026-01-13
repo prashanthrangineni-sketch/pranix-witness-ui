@@ -5,17 +5,27 @@ export default async function EvidencePage({
 }: {
   params: { tx_id: string };
 }) {
+  const normalizedTxId = params.tx_id.trim();
+
   const { data, error } = await supabase
     .from("protocol_efficiency_ledger")
     .select("*")
-    .eq("tx_id", params.tx_id)
+    .eq("tx_id", normalizedTxId)
     .order("created_at", { ascending: true });
 
   if (error || !data || data.length === 0) {
     return (
-      <main style={{ padding: 24, background: "black", color: "white" }}>
+      <main
+        style={{
+          padding: 24,
+          background: "black",
+          color: "white",
+          minHeight: "100vh",
+          fontFamily: "system-ui, sans-serif",
+        }}
+      >
         <h2>Evidence not found</h2>
-        <p style={{ opacity: 0.6 }}>
+        <p style={{ opacity: 0.7, marginTop: 8 }}>
           This transaction ID does not resolve to a verified record.
         </p>
       </main>
@@ -32,25 +42,21 @@ export default async function EvidencePage({
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <h1>Evidence Chain</h1>
+      <h1 style={{ marginBottom: 16 }}>Evidence Chain</h1>
 
-      <p style={{ opacity: 0.7, marginBottom: 24 }}>
-        Transaction ID: <strong>{params.tx_id}</strong>
-      </p>
-
-      {data.map((row, index) => (
+      {data.map((row) => (
         <div
-          key={row.created_at + index}
+          key={row.id}
           style={{
             background: "#0b0b0b",
-            borderRadius: "12px",
-            padding: "16px",
-            marginBottom: "16px",
+            borderRadius: 12,
+            padding: 16,
+            marginBottom: 16,
             border: "1px solid rgba(255,255,255,0.08)",
           }}
         >
-          <p style={{ fontWeight: 600, color: "#4fd1c5" }}>
-            Observation #{index + 1}
+          <p style={{ color: "#4fd1c5", fontWeight: 600 }}>
+            Transaction ID: {row.tx_id}
           </p>
 
           <p>Sector: {row.sector}</p>
@@ -63,7 +69,7 @@ export default async function EvidencePage({
                 background: "#f59e0b",
                 color: "black",
                 padding: "2px 8px",
-                borderRadius: "6px",
+                borderRadius: 6,
                 fontWeight: 700,
               }}
             >
@@ -77,7 +83,7 @@ export default async function EvidencePage({
               style={{
                 background: "#dc2626",
                 padding: "2px 8px",
-                borderRadius: "6px",
+                borderRadius: 6,
                 fontWeight: 700,
               }}
             >
@@ -89,18 +95,16 @@ export default async function EvidencePage({
             Evidence Hash: {row.sha256_evidence_hash}
           </p>
 
-          <p style={{ opacity: 0.6, fontSize: "14px" }}>
+          <p style={{ opacity: 0.6, fontSize: 14 }}>
             Timestamp: {new Date(row.created_at).toLocaleString()}
           </p>
         </div>
       ))}
 
-      <hr style={{ marginTop: 32, opacity: 0.2 }} />
+      <hr style={{ margin: "24px 0", opacity: 0.2 }} />
 
-      <p style={{ opacity: 0.4, fontSize: "13px" }}>
-        This page displays a neutral, read-only evidence chain. It does not
-        recommend, promote, or influence purchase decisions.
+      <p style={{ opacity: 0.5, fontSize: 13 }}>
+        This page displays a neutral, read-only market observation.
+        It does not recommend, promote, or influence purchase decisions.
       </p>
-    </main>
-  );
-}
+    </
