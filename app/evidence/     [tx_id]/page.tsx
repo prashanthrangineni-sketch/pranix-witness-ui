@@ -1,23 +1,24 @@
-import { notFound } from "next/navigation";
+export const dynamic = "force-dynamic";
 
-export default function EvidencePage({
-  params,
-}: {
-  params: { tx_id: string };
-}) {
-  if (!params?.tx_id) notFound();
-
+export default function EvidencePage({ params }: { params: { tx_id: string } }) {
   return (
-    <main style={{ padding: 24, background: "black", color: "white" }}>
-      <h1>Evidence Verified</h1>
+    <main
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#000",
+        color: "#0ff",
+        padding: "40px",
+        fontFamily: "monospace",
+      }}
+    >
+      <h1>✅ Evidence Route Working</h1>
 
-      <p>
-        <strong>Transaction ID:</strong>{" "}
-        <span style={{ color: "#00e0ff" }}>{params.tx_id}</span>
-      </p>
+      <p>If you can see this page, routing is FIXED.</p>
 
-      <p>Status: VERIFIED</p>
-      <p>Source: Cart2Save Witness Ledger</p>
+      <hr />
+
+      <h3>Transaction ID</h3>
+      <pre>{params?.tx_id}</pre>
     </main>
   );
 }
