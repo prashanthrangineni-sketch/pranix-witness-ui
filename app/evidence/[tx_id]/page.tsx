@@ -26,14 +26,24 @@ export default async function EvidencePage({
     <main style={{ padding: "2rem", fontFamily: "sans-serif" }}>
       <h1>Pranix Sovereign Witness</h1>
       <hr />
-      <p><strong>Transaction ID:</strong> {data.tx_id}</p>
-      <p><strong>Status:</strong> {data.status}</p>
-      <pre style={{ background: "#111", color: "#0f0", padding: "1rem" }}>
-        {JSON.stringify(data.payload, null, 2)}
+      <p>
+        <strong>Transaction ID:</strong> {data.tx_id}
+      </p>
+      <p>
+        <strong>Status:</strong>{" "}
+        <span style={{ color: "green" }}>✅ VERIFIED</span>
+      </p>
+      <pre
+        style={{
+          marginTop: "1rem",
+          background: "#111",
+          color: "#0f0",
+          padding: "1rem",
+          overflowX: "auto",
+        }}
+      >
+        {JSON.stringify(data, null, 2)}
       </pre>
-      <footer style={{ marginTop: "2rem", fontSize: "0.8rem", color: "#666" }}>
-        Neutral Evidence Layer | Institutional Grade
-      </footer>
     </main>
   );
 }
