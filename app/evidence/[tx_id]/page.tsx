@@ -1,26 +1,55 @@
-// app/evidence/[tx_id]/page.tsx
+import { supabase } from "../../../lib/supabaseClient";
 
 export default async function EvidencePage({
   params,
 }: {
-  params: Promise<{ tx_id: string }>;
+  params: { tx_id: string };
 }) {
-  const { tx_id } = await params;
+  const { tx_id } = params;
+
+  const { data, error } = await supabase
+    .from("protocol_efficiency_ledger")
+    .select(
+      "tx_id, sector, item, status, sha256_evidence_hash, scan_timestamp"
+    )
+    .eq("tx_id", tx_id)
+    .single();
+
+  if (error || !data) {
+    return (
+      <main style={{ padding: "2rem", background: "black", color: "white" }}>
+        <h1>Pranix Sovereign Witness</h1>
+        <p>Evidence not found or not yet indexed.</p>
+        <p style={{ opacity: 0.6 }}>Transaction ID: {tx_id}</p>
+      </main>
+    );
+  }
 
   return (
-    <main style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+    <main style={{ padding: "2rem", background: "black", color: "white" }}>
       <h1>Pranix Sovereign Witness</h1>
-      <hr />
-      <section style={{ marginTop: '1rem', border: '1px solid #ccc', padding: '1rem' }}>
-        <p><strong>Transaction ID:</strong> {tx_id}</p>
-        <p>
-          <strong>Status:</strong>{' '}
-          <span style={{ color: 'orange' }}>Awaiting Data...</span>
-        </p>
-      </section>
-      <footer style={{ marginTop: '2rem', fontSize: '0.8rem', color: '#666' }}>
-        Neutral Evidence Layer | V1.1 Institutional
-      </footer>
+
+      <hr style={{ margin: "1rem 0", opacity: 0.2 }} />
+
+      <p><strong>Transaction ID:</strong> {data.tx_id}</p>
+      <p><strong>Sector:</strong> {data.sector}</p>
+      <p><strong>Item:</strong> {data.item}</p>
+      <p><strong>Status:</strong> {data.status}</p>
+
+      <p style={{ wordBreak: "break-all" }}>
+        <strong>Evidence Hash:</strong> {data.sha256_evidence_hash}
+      </p>
+
+      <p>
+        <strong>Timestamp:</strong>{" "}
+        {new Date(data.scan_timestamp).toLocaleString()}
+      </p>
+
+      <hr style={{ margin: "1.5rem 0", opacity: 0.2 }} />
+
+      <p style={{ fontSize: "0.85rem", opacity: 0.6 }}>
+        Neutral Evidence Layer · Stateless Witness · V1.1 Institutional
+      </p>
     </main>
   );
 }
