@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function ResultsPage() {
   const { snapshot_id } = useParams()
   const router = useRouter()
-  const supabase = createClientComponentClient()
   const [data, setData] = useState<any>(null)
 
   useEffect(() => {
@@ -36,7 +40,9 @@ export default function ResultsPage() {
         }
       })
 
-    router.push(`/order/${data.order_id}`)
+    if (data?.order_id) {
+      router.push(`/order/${data.order_id}`)
+    }
   }
 
   if (!data) return <p>Loading...</p>
