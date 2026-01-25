@@ -1,6 +1,6 @@
 {
   "name": "pranix-witness-ui",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,14 +15,11 @@
     "@supabase/supabase-js": "^2.39.7"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.15",
-    "tailwindcss": "^3.4.1",
-    "postcss": "^8.4.38",
-    "autoprefixer": "^10.4.19",
     "typescript": "^5.3.3"
   }
 }
