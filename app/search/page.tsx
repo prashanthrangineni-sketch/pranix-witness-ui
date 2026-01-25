@@ -2,7 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 const SECTORS = [
   { id: 'food', name: '🍔 Food' },
@@ -19,10 +24,10 @@ export default function SearchPage() {
   const [sector, setSector] = useState('food')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
+    setLoading(true)
 
     const location = { lat: 12.9716, lng: 77.5946 }
 
@@ -36,7 +41,11 @@ export default function SearchPage() {
         }
       })
 
-    if (!error) router.push(`/results/${data.snapshot_id}`)
+    setLoading(false)
+
+    if (!error && data?.snapshot_id) {
+      router.push(`/results/${data.snapshot_id}`)
+    }
   }
 
   return (
@@ -66,8 +75,11 @@ export default function SearchPage() {
             placeholder="Search product..."
             className="flex-1 p-3 border rounded-xl"
           />
-          <button className="bg-indigo-600 text-white px-4 rounded-xl">
-            Search
+          <button
+            disabled={loading}
+            className="bg-indigo-600 text-white px-4 rounded-xl"
+          >
+            {loading ? 'Searching...' : 'Search'}
           </button>
         </form>
 
