@@ -1,21 +1,18 @@
-import type { Metadata } from "next";
 import "./globals.css";
 
-export const metadata: Metadata = {
-  title: "Pranix AI Labs",
-  description: "Sovereign Commerce Protocol",
+export const metadata = {
+  title: "Pranix Witness",
+  description: "Pranix AI Labs Sovereign Witness System"
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className="antialiased">
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
