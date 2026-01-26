@@ -1,69 +1,43 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 const SECTORS = [
-  { id: 'food', name: '🍔 Food' },
-  { id: 'grocery', name: '🛒 Groceries' },
-  { id: 'mobility', name: '🚗 Transport' },
-  { id: 'electronics', name: '📱 Electronics' },
-  { id: 'pharmacy', name: '💊 Pharmacy' },
-  { id: 'apparel', name: '👕 Fashion' },
-  { id: 'home_services', name: '🏠 Home Services' }
-]
+  { id: 'food', label: '🍔 Food' },
+  { id: 'grocery', label: '🛒 Groceries' },
+  { id: 'electronics', label: '📱 Electronics' },
+  { id: 'pharmacy', label: '💊 Pharmacy' },
+  { id: 'apparel', label: '👕 Fashion' },
+];
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('')
-  const [sector, setSector] = useState('food')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [query, setQuery] = useState('');
+  const [sector, setSector] = useState('food');
+  const router = useRouter();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
 
-    const location = { lat: 12.9716, lng: 77.5946 }
-
-    const { data, error } =
-      await supabase.functions.invoke('search-products', {
-        body: {
-          query,
-          sector,
-          user_id: null,
-          location
-        }
-      })
-
-    setLoading(false)
-
-    if (!error && data?.snapshot_id) {
-      router.push(`/results/${data.snapshot_id}`)
-    }
-  }
+    router.push(`/results?s=${sector}&q=${encodeURIComponent(query)}`);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-indigo-600 p-4">
-      <div className="bg-white p-6 rounded-xl max-w-lg w-full">
-
-        <h1 className="text-3xl font-bold text-center mb-6">Cart2Save</h1>
+    <main className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6">
+      <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-6">Search Best Price</h1>
 
         <div className="grid grid-cols-3 gap-2 mb-4">
           {SECTORS.map(s => (
             <button
               key={s.id}
               onClick={() => setSector(s.id)}
-              className={`p-2 rounded-lg ${
+              className={`p-2 rounded-lg text-sm ${
                 sector === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-200'
               }`}
             >
-              {s.name}
+              {s.label}
             </button>
           ))}
         </div>
@@ -75,15 +49,11 @@ export default function SearchPage() {
             placeholder="Search product..."
             className="flex-1 p-3 border rounded-xl"
           />
-          <button
-            disabled={loading}
-            className="bg-indigo-600 text-white px-4 rounded-xl"
-          >
-            {loading ? 'Searching...' : 'Search'}
+          <button className="bg-indigo-600 text-white px-4 rounded-xl">
+            Go
           </button>
         </form>
-
       </div>
-    </div>
-  )
+    </main>
+  );
 }
