@@ -23,37 +23,14 @@ export async function POST(req: Request) {
       .toString(36)
       .slice(2, 8)}`
 
-    // Temporary mock results so UI can render snapshot
-    const mockResults = [
-      {
-        merchant: 'BigBasket',
-        price: 312,
-        delivery: '2 hrs',
-        trust: 92
-      },
-      {
-        merchant: 'Amazon Fresh',
-        price: 318,
-        delivery: '4 hrs',
-        trust: 89
-      },
-      {
-        merchant: 'Flipkart Grocery',
-        price: 325,
-        delivery: 'Next day',
-        trust: 87
-      }
-    ]
-
     const { data, error } = await supabase
       .from('snapshots')
       .insert({
         snapshot_id,
         intent_id,
         sector,
-        status: 'READY',
-        total_offers: mockResults.length,
-        results: mockResults,
+        total_offers: 0,
+        results: [],
         generated_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
       })
@@ -61,11 +38,16 @@ export async function POST(req: Request) {
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Supabase Insert Error:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ snapshot: data })
   } catch (err: any) {
+    console.error('API Crash:', err)
     return NextResponse.json(
       { error: err.message || 'Internal Server Error' },
       { status: 500 }
