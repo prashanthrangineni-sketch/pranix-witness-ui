@@ -1,14 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' })
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
   try {
@@ -18,8 +21,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Missing query or sector' })
     }
 
-    const snapshotId = `SNP-${Date.now()}`
-    const intentId = `INT-${Date.now()}`
+    const snapshotId = `SNP-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`
+    const intentId = `INT-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`
 
     const { data, error } = await supabase
       .from('snapshots')
@@ -32,18 +39,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: 'ACTIVE',
         results: [],
         generated_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+        expires_at: new Date(
+          Date.now() + 30 * 60 * 1000
+        ).toISOString()
       })
       .select()
       .single()
 
     if (error) {
+      console.error('SUPABASE ERROR:', error)
       return res.status(500).json({ error: error.message })
     }
 
-    return res.status(200).json({ snapshot: data })
-
+    return res.status(200).json({
+      success: true,
+      snapshot: data
+    })
   } catch (err: any) {
+    console.error('SEARCH API ERROR:', err)
     return res.status(500).json({ error: err.message })
   }
 }
