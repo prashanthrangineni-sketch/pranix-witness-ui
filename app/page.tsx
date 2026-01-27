@@ -20,12 +20,7 @@ export default function HomePage() {
   const router = useRouter()
 
   const handleSearch = async () => {
-    if (!query.trim()) {
-      alert('Enter product name')
-      return
-    }
-
-    alert(`Searching "${query}" in sector "${sector}"`)
+    if (!query) return alert('Enter product name')
 
     setLoading(true)
 
@@ -37,114 +32,61 @@ export default function HomePage() {
       })
 
       const data = await res.json()
-      console.log('API RESPONSE:', data)
+      console.log('SEARCH API RESPONSE →', data)
 
-      const snapshotId =
-        data?.snapshot?.snapshot_id ||
-        data?.snapshot?.id ||
-        data?.snapshot?.[0]?.snapshot_id
-
-      if (!snapshotId) {
-        alert('Snapshot not created — API returned invalid response.')
+      if (!data?.snapshot?.snapshot_id) {
+        alert('Snapshot creation failed — backend error')
         return
       }
 
-      router.push(`/results/${snapshotId}`)
+      router.push(`/results/${data.snapshot.snapshot_id}`)
     } catch (err) {
       console.error(err)
-      alert('Search failed. API connectivity issue.')
+      alert('API unreachable')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: 16
-    }}>
-      <div style={{
-        background: 'white',
-        borderRadius: 12,
-        padding: 20,
-        width: '100%',
-        maxWidth: 420,
-        boxShadow: '0 10px 25px rgba(0,0,0,0.15)'
-      }}>
-
-        <h1 style={{ textAlign: 'center', fontSize: 28, fontWeight: 'bold' }}>
-          Cart2Save
-        </h1>
-
-        <p style={{ textAlign: 'center', color: '#666', marginBottom: 12 }}>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
+        <h1 className="text-3xl font-bold text-center mb-2">Cart2Save</h1>
+        <p className="text-center text-gray-500 mb-4">
           Best price. Every time.
         </p>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 8,
-          marginBottom: 16
-        }}>
+        <div className="grid grid-cols-3 gap-2 mb-4">
           {SECTORS.map(s => (
             <button
               key={s.id}
               onClick={() => setSector(s.id)}
-              style={{
-                padding: 10,
-                borderRadius: 8,
-                border: '2px solid',
-                borderColor: sector === s.id ? '#16a34a' : '#ddd',
-                background: sector === s.id ? '#16a34a' : '#f3f4f6',
-                color: sector === s.id ? 'white' : '#333',
-                fontWeight: 'bold',
-                fontSize: 13,
-                cursor: 'pointer',
-                transform: sector === s.id ? 'scale(1.05)' : 'scale(1)',
-                transition: 'all 0.15s ease'
-              }}
+              className={`p-2 rounded-lg text-sm font-medium border transition ${
+                sector === s.id
+                  ? 'bg-green-600 text-white border-green-600'
+                  : 'bg-gray-100 text-gray-700'
+              }`}
             >
               {s.name}
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search product..."
-            style={{
-              flex: 1,
-              padding: 12,
-              borderRadius: 10,
-              border: '1px solid #ccc',
-              fontSize: 15
-            }}
+            className="flex-1 p-3 border rounded-xl"
           />
-
           <button
             onClick={handleSearch}
-            style={{
-              padding: '12px 16px',
-              borderRadius: 10,
-              background: '#4f46e5',
-              color: 'white',
-              fontWeight: 'bold',
-              border: 'none',
-              cursor: 'pointer',
-              minWidth: 90
-            }}
+            className="bg-indigo-600 text-white px-4 rounded-xl min-w-[90px]"
           >
             {loading ? '...' : 'Search'}
           </button>
         </div>
-
       </div>
     </div>
   )
-      }
+}
