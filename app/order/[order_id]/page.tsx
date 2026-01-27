@@ -3,7 +3,8 @@
 import { useParams } from 'next/navigation'
 
 export default function OrderSuccess() {
-  const { order_id } = useParams()
+  const params = useParams()
+  const order_id = params?.order_id as string
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-green-100">
