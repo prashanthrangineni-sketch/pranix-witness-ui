@@ -1,29 +1,40 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { query, sector } = await req.json()
+    const body = await request.json()
+    const { query, sector } = body
 
-    const snapshot_id = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    if (!query || !sector) {
+      return NextResponse.json(
+        { error: 'Missing query or sector' },
+        { status: 400 }
+      )
+    }
+
+    const snapshotId = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const intentId = `INT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
     const { data, error } = await supabase
       .from('snapshots')
       .insert({
-        snapshot_id,
+        snapshot_id: snapshotId,
+        intent_id: intentId,
+        user_id: null,
         sector,
         total_offers: 0,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        results: [],
+        generated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
       })
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
 
     return NextResponse.json({ snapshot: data })
   } catch (err: any) {
