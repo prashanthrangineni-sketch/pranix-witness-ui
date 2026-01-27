@@ -1,45 +1,32 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: Request) {
   try {
     const { query, sector } = await req.json()
 
-    if (!query || !sector) {
-      return NextResponse.json({ error: 'Missing query or sector' }, { status: 400 })
-    }
-
-    const snapshotId = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const intentId = `INT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const snapshot_id = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
     const { data, error } = await supabase
       .from('snapshots')
-      .insert([{
-        snapshot_id: snapshotId,
-        intent_id: intentId,
-        user_id: null,
+      .insert({
+        snapshot_id,
         sector,
         total_offers: 0,
-        status: 'ACTIVE',
-        results: [],
-        generated_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }])
+        status: 'ACTIVE'
+      })
       .select()
       .single()
 
-    if (error) {
-      console.error('SUPABASE INSERT ERROR:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
+    if (error) throw error
 
-    return NextResponse.json({
-      success: true,
-      snapshot: data
-    })
-
+    return NextResponse.json({ snapshot: data })
   } catch (err: any) {
-    console.error('SEARCH API ERROR:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
