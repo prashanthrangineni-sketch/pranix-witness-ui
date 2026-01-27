@@ -1,60 +1,49 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { useEffect, useState } from 'react'
 
 export default function ResultsPage() {
-  const { snapshot_id } = useParams()
+  const params = useParams()
+  const snapshot_id = params?.snapshot_id as string
+
   const [data, setData] = useState<any>(null)
   const [trust, setTrust] = useState<any>(null)
 
   useEffect(() => {
-    load()
-  }, [])
+    if (!snapshot_id) return
 
-  async function load() {
-    const { data: snap } = await supabase
-      .from('snapshots')
-      .select('*')
-      .eq('id', snapshot_id)
-      .single()
+    const fetchData = async () => {
+      try {
+        const res = await fetch(`/api/results/${snapshot_id}`)
+        const json = await res.json()
+        setData(json)
+        setTrust(json?.trust_score ?? null)
+      } catch (err) {
+        console.error('Fetch error', err)
+      }
+    }
 
-    const { data: trustScore } = await supabase
-      .from('trust_scores')
-      .select('*')
-      .eq('snapshot_id', snapshot_id)
-      .single()
-
-    setData(snap)
-    setTrust(trustScore)
-  }
-
-  if (!data) return <p className="p-6">Loading...</p>
+    fetchData()
+  }, [snapshot_id])
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Offers</h2>
+    <div className="min-h-screen p-6 bg-gray-100">
+      <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
+        <h2 className="text-xl font-bold mb-2">Snapshot Results</h2>
 
-      {trust && (
-        <div className="bg-green-100 border border-green-300 p-4 rounded-xl mb-4">
-          <p className="font-semibold">
-            Trust Score: {trust.composite_trust_score}
-          </p>
-        </div>
-      )}
+        <p className="text-sm text-gray-500 mb-4">
+          Snapshot ID: <span className="font-mono">{snapshot_id}</span>
+        </p>
 
-      {data.results?.map((p: any) => (
-        <div key={p.product_id} className="border p-4 rounded-xl mb-3">
-          <h3 className="font-semibold">{p.product_name}</h3>
-          <p className="text-sm text-gray-500">{p.merchant_name}</p>
-          <p className="text-lg font-bold">₹{p.price}</p>
-
-          <button className="mt-2 bg-indigo-600 text-white px-4 py-2 rounded-xl">
-            Buy Now
-          </button>
-        </div>
-      ))}
+        {data ? (
+          <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        ) : (
+          <p>Loading...</p>
+        )}
+      </div>
     </div>
   )
 }
