@@ -1,7 +1,8 @@
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,18 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Missing Supabase env vars' },
+        { status: 500 }
+      )
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey)
 
     const snapshotId = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const intentId = `INT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -35,11 +48,14 @@ export async function POST(request: Request) {
       .single()
 
     if (error) {
+      console.error('SUPABASE ERROR:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json({ snapshot: data })
+
   } catch (err: any) {
+    console.error('SEARCH API ERROR:', err)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
