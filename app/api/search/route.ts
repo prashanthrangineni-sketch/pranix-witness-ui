@@ -1,39 +1,45 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
-import { nanoid } from 'nanoid'
 
 export async function POST(req: Request) {
-  const { query, sector } = await req.json()
+  try {
+    const { query, sector } = await req.json()
 
-  if (!query || !sector) {
-    return NextResponse.json({ error: 'Missing query or sector' }, { status: 400 })
-  }
+    if (!query || !sector) {
+      return NextResponse.json({ error: 'Missing query or sector' }, { status: 400 })
+    }
 
-  const snapshot_id = `SNP-${Date.now()}-${nanoid(6)}`
-  const intent_id = `INT-${Date.now()}-${nanoid(6)}`
+    const snapshotId = `SNP-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const intentId = `INT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-  const now = new Date()
-  const expires = new Date(now.getTime() + 30 * 60 * 1000)
-
-  const { data, error } = await supabase
-    .from('snapshots')
-    .insert([
-      {
-        snapshot_id,
-        intent_id,
+    const { data, error } = await supabase
+      .from('snapshots')
+      .insert([{
+        snapshot_id: snapshotId,
+        intent_id: intentId,
+        user_id: null,
         sector,
-        generated_at: now.toISOString(),
-        expires_at: expires.toISOString(),
-        status: 'ACTIVE',
         total_offers: 0,
-        results: []
-      }
-    ])
-    .select()
+        status: 'ACTIVE',
+        results: [],
+        generated_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      }])
+      .select()
+      .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      console.error('SUPABASE INSERT ERROR:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      snapshot: data
+    })
+
+  } catch (err: any) {
+    console.error('SEARCH API ERROR:', err)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  return NextResponse.json({ success: true, snapshot: data[0] })
 }
