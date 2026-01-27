@@ -20,7 +20,8 @@ export default function HomePage() {
   const router = useRouter()
 
   const handleSearch = async () => {
-    if (!query) return
+    if (!query) return alert('Enter product name')
+
     setLoading(true)
 
     try {
@@ -31,27 +32,32 @@ export default function HomePage() {
       })
 
       const data = await res.json()
+      console.log('API RESPONSE:', data)
 
-      console.log('API Response:', data)
+      const snapshotId =
+        data?.snapshot?.snapshot_id ||
+        data?.snapshot?.id ||
+        data?.snapshot?.[0]?.snapshot_id
 
-      if (data?.snapshot?.snapshot_id) {
-        router.push(`/results/${data.snapshot.snapshot_id}`)
-      } else {
+      if (!snapshotId) {
         alert('Snapshot not created — API returned invalid response.')
+        return
       }
+
+      router.push(`/results/${snapshotId}`)
     } catch (err) {
       console.error(err)
-      alert('Search failed. API not reachable.')
+      alert('Search failed. API connectivity issue.')
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
-        <h1 className="text-3xl font-bold text-center mb-4">Cart2Save</h1>
-        <p className="text-center text-gray-500 mb-6">
+        <h1 className="text-3xl font-bold text-center mb-2">Cart2Save</h1>
+        <p className="text-center text-gray-500 mb-4">
           Best price. Every time.
         </p>
 
@@ -60,8 +66,10 @@ export default function HomePage() {
             <button
               key={s.id}
               onClick={() => setSector(s.id)}
-              className={`p-2 rounded-lg ${
-                sector === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+              className={`p-2 rounded-lg text-sm font-medium border ${
+                sector === s.id
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-gray-100 text-gray-700'
               }`}
             >
               {s.name}
@@ -78,7 +86,7 @@ export default function HomePage() {
           />
           <button
             onClick={handleSearch}
-            className="bg-indigo-600 text-white px-4 rounded-xl"
+            className="bg-indigo-600 text-white px-4 rounded-xl min-w-[90px]"
           >
             {loading ? '...' : 'Search'}
           </button>
