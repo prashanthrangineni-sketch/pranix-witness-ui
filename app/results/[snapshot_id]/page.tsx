@@ -1,49 +1,58 @@
 'use client'
 
-import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
-export default function ResultsPage() {
+export default function SnapshotResultsPage() {
   const params = useParams()
-  const snapshot_id = params?.snapshot_id as string
+  const snapshot_id = params.snapshot_id as string
 
-  const [data, setData] = useState<any>(null)
-  const [trust, setTrust] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [snapshot, setSnapshot] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!snapshot_id) return
-
-    const fetchData = async () => {
+    async function fetchSnapshot() {
       try {
-        const res = await fetch(`/api/results/${snapshot_id}`)
-        const json = await res.json()
-        setData(json)
-        setTrust(json?.trust_score ?? null)
-      } catch (err) {
-        console.error('Fetch error', err)
+        const { data, error } = await supabase
+          .from('snapshots')
+          .select('*')
+          .eq('snapshot_id', snapshot_id)
+          .single()
+
+        if (error) throw error
+
+        setSnapshot(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
       }
     }
 
-    fetchData()
+    fetchSnapshot()
   }, [snapshot_id])
 
-  return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
-        <h2 className="text-xl font-bold mb-2">Snapshot Results</h2>
+  if (loading) return <div className="p-4">Loading...</div>
 
-        <p className="text-sm text-gray-500 mb-4">
-          Snapshot ID: <span className="font-mono">{snapshot_id}</span>
-        </p>
-
-        {data ? (
-          <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        ) : (
-          <p>Loading...</p>
-        )}
+  if (error)
+    return (
+      <div className="p-4 text-red-600">
+        Error loading snapshot: {error}
       </div>
+    )
+
+  return (
+    <div className="p-4">
+      <h1 className="text-xl font-bold mb-2">Snapshot Results</h1>
+      <p className="text-sm text-gray-600 mb-4">
+        Snapshot ID: {snapshot.snapshot_id}
+      </p>
+
+      <pre className="bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+        {JSON.stringify(snapshot, null, 2)}
+      </pre>
     </div>
   )
 }
