@@ -1,37 +1,80 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function Home() {
+const SECTORS = [
+  { id: 'food', name: '🍔 Food' },
+  { id: 'grocery', name: '🛒 Grocery' },
+  { id: 'mobility', name: '🚗 Mobility' },
+  { id: 'electronics', name: '📱 Electronics' },
+  { id: 'pharmacy', name: '💊 Pharmacy' },
+  { id: 'apparel', name: '👕 Apparel' },
+  { id: 'home_services', name: '🏠 Home Services' }
+]
+
+export default function HomePage() {
   const [query, setQuery] = useState('')
+  const [sector, setSector] = useState('grocery')
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
   const handleSearch = async () => {
     if (!query) return
+    setLoading(true)
 
-    await fetch('/api/search', {
+    const res = await fetch('/api/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
+      body: JSON.stringify({ query, sector })
     })
 
-    setQuery('')
+    const data = await res.json()
+
+    if (data?.snapshot?.id) {
+      router.push(`/results/${data.snapshot.id}`)
+    }
+
+    setLoading(false)
   }
 
   return (
-    <main style={{ padding: 24, fontFamily: 'Arial' }}>
-      <h1>Cart2Save</h1>
-      <p>India's First Trust-Based Price Discovery Platform</p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
+        <h1 className="text-3xl font-bold text-center mb-4">Cart2Save</h1>
+        <p className="text-center text-gray-500 mb-6">
+          Best price. Every time.
+        </p>
 
-      <input
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search product..."
-        style={{ padding: 10, width: 250 }}
-      />
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {SECTORS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => setSector(s.id)}
+              className={`p-2 rounded-lg ${
+                sector === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-200'
+              }`}
+            >
+              {s.name}
+            </button>
+          ))}
+        </div>
 
-      <button onClick={handleSearch} style={{ marginLeft: 10, padding: 10 }}>
-        Go
-      </button>
-    </main>
+        <div className="flex gap-2">
+          <input
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search product..."
+            className="flex-1 p-3 border rounded-xl"
+          />
+          <button
+            onClick={handleSearch}
+            className="bg-indigo-600 text-white px-4 rounded-xl"
+          >
+            {loading ? '...' : 'Search'}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
