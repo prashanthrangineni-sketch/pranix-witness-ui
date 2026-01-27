@@ -20,7 +20,10 @@ export default function HomePage() {
   const router = useRouter()
 
   const handleSearch = async () => {
-    if (!query) return alert('Enter product name')
+    if (!query.trim()) {
+      alert('Enter product name')
+      return
+    }
 
     setLoading(true)
 
@@ -66,10 +69,10 @@ export default function HomePage() {
             <button
               key={s.id}
               onClick={() => setSector(s.id)}
-              className={`p-2 rounded-lg text-sm font-medium border ${
+              className={`p-2 rounded-lg text-sm font-bold border transition-all ${
                 sector === s.id
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-gray-100 text-gray-700'
+                  ? 'bg-green-600 text-white border-green-700 scale-105 shadow-lg'
+                  : 'bg-gray-100 text-gray-700 border-gray-300'
               }`}
             >
               {s.name}
@@ -82,11 +85,11 @@ export default function HomePage() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search product..."
-            className="flex-1 p-3 border rounded-xl"
+            className="flex-1 p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           <button
             onClick={handleSearch}
-            className="bg-indigo-600 text-white px-4 rounded-xl min-w-[90px]"
+            className="bg-indigo-600 text-white px-4 rounded-xl min-w-[90px] hover:bg-indigo-700 transition"
           >
             {loading ? '...' : 'Search'}
           </button>
