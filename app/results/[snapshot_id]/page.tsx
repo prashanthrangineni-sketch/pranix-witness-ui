@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function SnapshotResultsPage() {
   const params = useParams()
@@ -31,10 +36,10 @@ export default function SnapshotResultsPage() {
       }
     }
 
-    fetchSnapshot()
+    if (snapshot_id) fetchSnapshot()
   }, [snapshot_id])
 
-  if (loading) return <div className="p-4">Loading...</div>
+  if (loading) return <div className="p-4">Loading snapshot...</div>
 
   if (error)
     return (
