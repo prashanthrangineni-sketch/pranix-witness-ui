@@ -13,9 +13,6 @@ const SECTORS = [
   { id: 'home_services', name: '🏠 Home Services' }
 ]
 
-const API_BASE =
-  'https://pranix-witness-gulil95ib-pranix-ai-labs-s-projects.vercel.app'
-
 export default function HomePage() {
   const [query, setQuery] = useState('')
   const [sector, setSector] = useState('grocery')
@@ -27,7 +24,7 @@ export default function HomePage() {
     setLoading(true)
 
     try {
-      const res = await fetch(`${API_BASE}/api/search`, {
+      const res = await fetch('/api/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, sector })
@@ -35,16 +32,16 @@ export default function HomePage() {
 
       const data = await res.json()
 
-      console.log('Search API response:', data)
+      console.log('API Response:', data)
 
       if (data?.snapshot?.snapshot_id) {
         router.push(`/results/${data.snapshot.snapshot_id}`)
       } else {
-        alert('Snapshot not created. Check API logs.')
+        alert('Snapshot not created — API returned invalid response.')
       }
     } catch (err) {
-      console.error('Search error:', err)
-      alert('Search failed. Check API connectivity.')
+      console.error(err)
+      alert('Search failed. API not reachable.')
     }
 
     setLoading(false)
