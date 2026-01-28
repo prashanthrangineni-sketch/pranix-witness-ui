@@ -23,14 +23,48 @@ export async function POST(req: Request) {
       .toString(36)
       .slice(2, 8)}`
 
+    // 🔹 Phase 1 Mock Offer Engine
+    const offers = [
+      {
+        merchant: 'Amazon Fresh',
+        price: 749,
+        mrp: 999,
+        discount: 25,
+        delivery: 'Tomorrow',
+        trust: 92,
+        verified: true,
+        deep_link: '#'
+      },
+      {
+        merchant: 'Flipkart Grocery',
+        price: 779,
+        mrp: 999,
+        discount: 22,
+        delivery: '2 days',
+        trust: 88,
+        verified: true,
+        deep_link: '#'
+      },
+      {
+        merchant: 'Local Kirana Store',
+        price: 699,
+        mrp: 899,
+        discount: 22,
+        delivery: '30 mins',
+        trust: 96,
+        verified: true,
+        deep_link: '#'
+      }
+    ]
+
     const { data, error } = await supabase
       .from('snapshots')
       .insert({
         snapshot_id,
         intent_id,
         sector,
-        total_offers: 0,
-        results: [],
+        total_offers: offers.length,
+        results: offers,
         generated_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString()
       })
