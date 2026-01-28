@@ -25,6 +25,7 @@ export async function POST(req: Request) {
         product_title,
         merchant,
         price,
+        total_amount: price,   // 🔥 REQUIRED FIX
         status: 'CREATED'
       })
       .select()
