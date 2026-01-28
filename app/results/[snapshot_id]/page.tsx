@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 
 export default function ResultsPage() {
   const { snapshot_id } = useParams()
+  const router = useRouter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [placing, setPlacing] = useState<string | null>(null)
 
   useEffect(() => {
     if (!snapshot_id) return
@@ -19,6 +21,36 @@ export default function ResultsPage() {
       })
       .catch(() => setLoading(false))
   }, [snapshot_id])
+
+  const placeOrder = async (item: any) => {
+    setPlacing(item.title)
+
+    try {
+      const res = await fetch('/api/order/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          snapshot_id,
+          product_title: item.title,
+          merchant: item.merchant,
+          price: item.price
+        })
+      })
+
+      const json = await res.json()
+
+      if (!json?.order_id) {
+        alert('Order creation failed')
+        return
+      }
+
+      router.push(`/order/${json.order_id}`)
+    } catch (err) {
+      alert('Order API error')
+    } finally {
+      setPlacing(null)
+    }
+  }
 
   if (loading) {
     return <div style={styles.center}>🔄 Loading verified offers...</div>
@@ -64,8 +96,8 @@ export default function ResultsPage() {
                 </div>
 
                 <div style={styles.meta}>
-                  <span>🚚 {item.delivery || '—'}</span>
-                  <span style={styles.trust}>🛡 {item.trust || 90}% Trust</span>
+                  <span>🚚 {item.delivery || 'Fast delivery'}</span>
+                  <span style={styles.trust}>🛡 {item.trust || 92}% Trust</span>
                 </div>
 
                 <div style={styles.badges}>
@@ -73,14 +105,16 @@ export default function ResultsPage() {
                   {isBest && <span style={styles.best}>Best Deal</span>}
                 </div>
 
-                <a
-                  href={item.buy_url || '#'}
-                  target="_blank"
-                  style={styles.buy}
-                  rel="noreferrer"
+                <button
+                  onClick={() => placeOrder(item)}
+                  disabled={placing === item.title}
+                  style={{
+                    ...styles.buy,
+                    opacity: placing === item.title ? 0.6 : 1
+                  }}
                 >
-                  Buy Now
-                </a>
+                  {placing === item.title ? 'Placing...' : 'Place Order'}
+                </button>
               </div>
             </div>
           )
@@ -210,13 +244,14 @@ const styles: any = {
   buy: {
     display: 'inline-block',
     marginTop: 10,
-    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
+    background: 'linear-gradient(135deg,#16a34a,#22c55e)',
     color: '#fff',
-    padding: '8px 18px',
+    padding: '9px 22px',
     borderRadius: 999,
-    textDecoration: 'none',
+    border: 'none',
+    cursor: 'pointer',
     fontSize: 14,
-    fontWeight: 600
+    fontWeight: 700
   },
   trustBox: {
     marginTop: 30,
@@ -227,4 +262,4 @@ const styles: any = {
     fontSize: 14,
     lineHeight: 1.6
   }
-    }
+}
