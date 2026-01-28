@@ -26,7 +26,7 @@ export async function POST(req: Request) {
         merchant,
         price,
         total_amount: price,   // 🔥 REQUIRED FIX
-        status: 'CREATED'
+        status: 'PENDING'
       })
       .select()
       .single()
