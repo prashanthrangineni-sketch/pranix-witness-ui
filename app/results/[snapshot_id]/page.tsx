@@ -3,39 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
-const DEMO_RESULTS = [
-  {
-    title: 'Basmati Rice 5kg',
-    merchant: 'Amazon Fresh',
-    price: 749,
-    original_price: 999,
-    discount: 25,
-    delivery: 'Tomorrow',
-    trust: 92,
-    buy_url: '#'
-  },
-  {
-    title: 'Basmati Rice 5kg',
-    merchant: 'Flipkart Grocery',
-    price: 779,
-    original_price: 999,
-    discount: 22,
-    delivery: '2 days',
-    trust: 88,
-    buy_url: '#'
-  },
-  {
-    title: 'Basmati Rice 5kg',
-    merchant: 'Local Kirana Store',
-    price: 699,
-    original_price: 899,
-    discount: 22,
-    delivery: '30 mins',
-    trust: 96,
-    buy_url: '#'
-  }
-]
-
 export default function ResultsPage() {
   const { snapshot_id } = useParams()
   const [data, setData] = useState<any>(null)
@@ -54,32 +21,37 @@ export default function ResultsPage() {
   }, [snapshot_id])
 
   if (loading) {
-    return <div style={styles.center}>Loading results...</div>
+    return <div style={styles.loader}>Fetching best prices…</div>
   }
 
-  const results =
-    data && data.results && data.results.length > 0
-      ? data.results
-      : DEMO_RESULTS
+  if (!data || !data.results || data.results.length === 0) {
+    return <div style={styles.center}>No offers found.</div>
+  }
 
-  const bestPrice = Math.min(...results.map((r: any) => r.price || 999999))
+  const bestPrice = Math.min(...data.results.map((r: any) => r.price || 999999))
 
   return (
     <div style={styles.page}>
       <h1 style={styles.heading}>Search Results</h1>
       <p style={styles.sub}>Snapshot ID: {snapshot_id}</p>
 
-      <div style={styles.list}>
-        {results.map((item: any, i: number) => {
+      <div style={styles.grid}>
+        {data.results.map((item: any, i: number) => {
           const isBest = item.price === bestPrice
 
           return (
-            <div key={i} style={{ ...styles.card, ...(isBest ? styles.bestCard : {}) }}>
-              <div style={styles.imageBox}>Product Image</div>
+            <div
+              key={i}
+              style={{
+                ...styles.card,
+                ...(isBest ? styles.bestCard : {})
+              }}
+            >
+              <div style={styles.imageBox}>IMG</div>
 
               <div style={styles.info}>
                 <h2 style={styles.title}>{item.title}</h2>
-                <p style={styles.merchant}>Sold by {item.merchant}</p>
+                <p style={styles.merchant}>{item.merchant}</p>
 
                 <div style={styles.priceRow}>
                   <span style={styles.price}>₹{item.price}</span>
@@ -87,17 +59,17 @@ export default function ResultsPage() {
                     <span style={styles.mrp}>₹{item.original_price}</span>
                   )}
                   {item.discount && (
-                    <span style={styles.discount}>{item.discount}% off</span>
+                    <span style={styles.discount}>{item.discount}% OFF</span>
                   )}
                 </div>
 
                 <div style={styles.meta}>
                   <span>🚚 {item.delivery || '—'}</span>
-                  <span>🛡 Trust {item.trust || 90}%</span>
+                  <span style={styles.trustBadge}>🛡 {item.trust || 90}% Trust</span>
                 </div>
 
                 <div style={styles.badges}>
-                  <span style={styles.verified}>Verified Price</span>
+                  <span style={styles.verified}>Verified</span>
                   {isBest && <span style={styles.best}>Best Deal</span>}
                 </div>
 
@@ -116,9 +88,8 @@ export default function ResultsPage() {
       </div>
 
       <div style={styles.trustBox}>
-        <strong>Trust Score:</strong> Calculated using price history, discount authenticity,
-        merchant reliability, and platform risk — ensuring transparent and
-        manipulation-resistant shopping.
+        <strong>Trust Engine:</strong> Scores derived from price history, discount
+        authenticity, merchant reliability & platform risk — ensuring manipulation-resistant shopping.
       </div>
     </div>
   )
@@ -126,123 +97,144 @@ export default function ResultsPage() {
 
 const styles: any = {
   page: {
-    maxWidth: 900,
+    maxWidth: 1200,
     margin: '0 auto',
     padding: 16,
-    fontFamily: 'system-ui, sans-serif'
+    fontFamily: 'system-ui, sans-serif',
+    background: '#fafafa'
+  },
+  loader: {
+    padding: 60,
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: 600
   },
   center: {
-    padding: 40,
+    padding: 50,
     textAlign: 'center',
     fontSize: 18
   },
   heading: {
-    fontSize: 26,
-    marginBottom: 4
+    fontSize: 28,
+    fontWeight: 700
   },
   sub: {
     color: '#666',
-    marginBottom: 20
+    marginBottom: 24
   },
-  list: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 14
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))',
+    gap: 16
   },
   card: {
     display: 'flex',
     gap: 14,
-    border: '1px solid #ddd',
-    borderRadius: 12,
-    padding: 12,
-    background: '#fff'
+    borderRadius: 14,
+    padding: 14,
+    background: '#fff',
+    border: '1px solid #e5e7eb',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
+    transition: '0.2s ease'
   },
   bestCard: {
-    border: '2px solid #16a34a',
+    border: '2px solid #22c55e',
     background: '#f0fdf4'
   },
   imageBox: {
-    width: 90,
-    height: 90,
-    borderRadius: 8,
-    background: '#eee',
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    background: '#f1f5f9',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 12,
-    color: '#666'
+    fontWeight: 600,
+    color: '#64748b'
   },
   info: {
     flex: 1
   },
   title: {
-    fontSize: 16,
-    fontWeight: 600,
-    marginBottom: 2
+    fontSize: 17,
+    fontWeight: 700,
+    marginBottom: 4
   },
   merchant: {
     fontSize: 13,
-    color: '#666'
+    color: '#64748b'
   },
   priceRow: {
     display: 'flex',
     gap: 10,
     alignItems: 'center',
-    marginTop: 6
+    marginTop: 8
   },
   price: {
-    fontSize: 20,
-    fontWeight: 700
+    fontSize: 22,
+    fontWeight: 800
   },
   mrp: {
     textDecoration: 'line-through',
-    color: '#888'
+    color: '#94a3b8'
   },
   discount: {
     color: '#dc2626',
-    fontWeight: 600
+    fontWeight: 700,
+    fontSize: 13
   },
   meta: {
     display: 'flex',
-    gap: 14,
+    gap: 12,
     marginTop: 6,
     fontSize: 13
+  },
+  trustBadge: {
+    background: '#ecfeff',
+    padding: '2px 6px',
+    borderRadius: 6,
+    color: '#0369a1',
+    fontWeight: 600
   },
   badges: {
     display: 'flex',
     gap: 8,
-    marginTop: 6
+    marginTop: 8
   },
   verified: {
+    background: '#dbeafe',
+    padding: '3px 8px',
+    borderRadius: 999,
     fontSize: 11,
-    background: '#e0f2fe',
-    padding: '2px 6px',
-    borderRadius: 6,
-    color: '#0369a1'
+    fontWeight: 600,
+    color: '#1e40af'
   },
   best: {
-    fontSize: 11,
     background: '#dcfce7',
-    padding: '2px 6px',
-    borderRadius: 6,
+    padding: '3px 8px',
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 600,
     color: '#166534'
   },
   buy: {
     display: 'inline-block',
-    marginTop: 8,
+    marginTop: 10,
     background: '#4f46e5',
     color: '#fff',
-    padding: '6px 14px',
-    borderRadius: 8,
+    padding: '8px 18px',
+    borderRadius: 10,
     textDecoration: 'none',
-    fontSize: 14
+    fontSize: 14,
+    fontWeight: 600
   },
   trustBox: {
     marginTop: 30,
-    padding: 14,
-    borderRadius: 12,
+    padding: 18,
+    borderRadius: 14,
     background: '#f8fafc',
     border: '1px solid #e5e7eb',
     fontSize: 14
   }
-}
+  }
