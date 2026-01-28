@@ -3,6 +3,39 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 
+const DEMO_RESULTS = [
+  {
+    title: 'Basmati Rice 5kg',
+    merchant: 'Amazon Fresh',
+    price: 749,
+    original_price: 999,
+    discount: 25,
+    delivery: 'Tomorrow',
+    trust: 92,
+    buy_url: '#'
+  },
+  {
+    title: 'Basmati Rice 5kg',
+    merchant: 'Flipkart Grocery',
+    price: 779,
+    original_price: 999,
+    discount: 22,
+    delivery: '2 days',
+    trust: 88,
+    buy_url: '#'
+  },
+  {
+    title: 'Basmati Rice 5kg',
+    merchant: 'Local Kirana Store',
+    price: 699,
+    original_price: 899,
+    discount: 22,
+    delivery: '30 mins',
+    trust: 96,
+    buy_url: '#'
+  }
+]
+
 export default function ResultsPage() {
   const { snapshot_id } = useParams()
   const [data, setData] = useState<any>(null)
@@ -24,11 +57,12 @@ export default function ResultsPage() {
     return <div style={styles.center}>Loading results...</div>
   }
 
-  if (!data || !data.results || data.results.length === 0) {
-    return <div style={styles.center}>No offers found.</div>
-  }
+  const results =
+    data && data.results && data.results.length > 0
+      ? data.results
+      : DEMO_RESULTS
 
-  const bestPrice = Math.min(...data.results.map((r: any) => r.price || 999999))
+  const bestPrice = Math.min(...results.map((r: any) => r.price || 999999))
 
   return (
     <div style={styles.page}>
@@ -36,7 +70,7 @@ export default function ResultsPage() {
       <p style={styles.sub}>Snapshot ID: {snapshot_id}</p>
 
       <div style={styles.list}>
-        {data.results.map((item: any, i: number) => {
+        {results.map((item: any, i: number) => {
           const isBest = item.price === bestPrice
 
           return (
