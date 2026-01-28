@@ -1,16 +1,14 @@
-export const runtime = 'nodejs'
-
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { snapshot_id, items } = body
+    const { snapshot_id, product_title, merchant, price } = body
 
-    if (!snapshot_id) {
+    if (!snapshot_id || !product_title || !merchant || !price) {
       return NextResponse.json(
-        { error: 'Missing snapshot_id' },
+        { error: 'Missing fields' },
         { status: 400 }
       )
     }
@@ -24,21 +22,27 @@ export async function POST(req: Request) {
       .insert({
         order_id,
         snapshot_id,
-        status: 'CREATED',
-        total_amount: items?.reduce((a: number, b: any) => a + (b.price || 0), 0) || 0,
-        payload: { items }
+        product_title,
+        merchant,
+        price,
+        status: 'CREATED'
       })
       .select()
       .single()
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      console.error('Order insert error:', error)
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ order: data })
+    return NextResponse.json({ order_id: data.order_id })
   } catch (err: any) {
+    console.error('Order API crash:', err)
     return NextResponse.json(
-      { error: err.message || 'Internal Error' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
   }
