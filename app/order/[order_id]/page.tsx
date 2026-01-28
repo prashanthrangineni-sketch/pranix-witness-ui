@@ -1,48 +1,47 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
 
-export default function ResultsPage() {
-  const params = useParams()
-  const snapshot_id = params?.snapshot_id as string
-
-  const [data, setData] = useState<any>(null)
-  const [trust, setTrust] = useState<any>(null)
-
-  useEffect(() => {
-    if (!snapshot_id) return
-
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`/api/results/${snapshot_id}`)
-        const json = await res.json()
-        setData(json)
-        setTrust(json?.trust_score ?? null)
-      } catch (err) {
-        console.error('Fetch error', err)
-      }
-    }
-
-    fetchData()
-  }, [snapshot_id])
+export default function OrderSuccess() {
+  const { order_id } = useParams()
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded-xl shadow">
-        <h2 className="text-xl font-bold mb-2">Snapshot Results</h2>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-500 to-emerald-600 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full">
+        <h2 className="text-3xl font-bold text-green-600">
+          Order Confirmed 🎉
+        </h2>
 
-        <p className="text-sm text-gray-500 mb-4">
-          Snapshot ID: <span className="font-mono">{snapshot_id}</span>
+        <p className="mt-3 text-gray-600">
+          Your demo order has been successfully placed.
         </p>
 
-        {data ? (
-          <pre className="text-xs bg-gray-50 p-3 rounded overflow-x-auto">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        ) : (
-          <p>Loading...</p>
-        )}
+        <div className="mt-6 p-4 bg-gray-50 rounded-xl border font-mono text-sm">
+          {order_id}
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3">
+          <a
+            href="/"
+            className="bg-indigo-600 text-white py-2 rounded-xl"
+          >
+            New Search
+          </a>
+
+          <a
+            href="/merchant/dashboard"
+            className="border border-indigo-600 text-indigo-600 py-2 rounded-xl"
+          >
+            View Merchant Panel
+          </a>
+
+          <a
+            href="/gig/dashboard"
+            className="border border-green-600 text-green-600 py-2 rounded-xl"
+          >
+            View Gig Panel
+          </a>
+        </div>
       </div>
     </div>
   )
