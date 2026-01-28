@@ -6,7 +6,6 @@ import { useParams, useRouter } from 'next/navigation'
 export default function ResultsPage() {
   const { snapshot_id } = useParams()
   const router = useRouter()
-
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [placing, setPlacing] = useState<string | null>(null)
@@ -24,7 +23,6 @@ export default function ResultsPage() {
   }, [snapshot_id])
 
   const placeOrder = async (item: any) => {
-    if (placing) return
     setPlacing(item.title)
 
     try {
@@ -42,13 +40,13 @@ export default function ResultsPage() {
       const json = await res.json()
 
       if (!json?.order_id) {
-        alert('Order creation failed. Please retry.')
+        alert(json?.error || 'Order creation failed')
         return
       }
 
       router.push(`/order/${json.order_id}`)
     } catch (err) {
-      alert('Order service unavailable.')
+      alert('Order API error')
     } finally {
       setPlacing(null)
     }
@@ -115,7 +113,7 @@ export default function ResultsPage() {
                     opacity: placing === item.title ? 0.6 : 1
                   }}
                 >
-                  {placing === item.title ? 'Placing Order...' : 'Place Order'}
+                  {placing === item.title ? 'Placing...' : 'Place Order'}
                 </button>
               </div>
             </div>
@@ -124,53 +122,31 @@ export default function ResultsPage() {
       </div>
 
       <div style={styles.trustBox}>
-        <strong>Trust Engine:</strong> Price integrity + discount authenticity + merchant
-        reliability + platform risk — regulator-grade confidence.
+        <strong>Trust Score:</strong> Calculated using price history, discount authenticity,
+        merchant reliability, and platform risk — ensuring transparent and
+        manipulation-resistant shopping.
       </div>
     </div>
   )
 }
 
-/* ---------------- STYLES ---------------- */
-
 const styles: any = {
-  page: {
-    maxWidth: 900,
-    margin: '0 auto',
-    padding: 16,
-    fontFamily: 'system-ui, sans-serif'
-  },
-  center: {
-    padding: 40,
-    textAlign: 'center',
-    fontSize: 18
-  },
-  heading: {
-    fontSize: 28,
-    marginBottom: 4
-  },
-  sub: {
-    color: '#666',
-    marginBottom: 20
-  },
-  list: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 16
-  },
+  page: { maxWidth: 900, margin: '0 auto', padding: 16, fontFamily: 'system-ui' },
+  center: { padding: 40, textAlign: 'center', fontSize: 18 },
+  heading: { fontSize: 28, marginBottom: 4 },
+  sub: { color: '#666', marginBottom: 20 },
+  list: { display: 'flex', flexDirection: 'column', gap: 16 },
   card: {
     display: 'flex',
     gap: 14,
     border: '1px solid #e5e7eb',
     borderRadius: 16,
     padding: 14,
-    background: '#ffffff',
-    boxShadow: '0 6px 18px rgba(0,0,0,0.04)'
+    background: '#ffffff'
   },
   bestCard: {
     border: '2px solid #22c55e',
-    background: '#f0fdf4',
-    boxShadow: '0 6px 22px rgba(34,197,94,0.15)'
+    background: '#f0fdf4'
   },
   imageBox: {
     width: 90,
@@ -179,55 +155,18 @@ const styles: any = {
     background: '#f3f4f6',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: 600
+    justifyContent: 'center'
   },
-  info: {
-    flex: 1
-  },
-  title: {
-    fontSize: 17,
-    fontWeight: 700
-  },
-  merchant: {
-    fontSize: 13,
-    color: '#6b7280'
-  },
-  priceRow: {
-    display: 'flex',
-    gap: 10,
-    alignItems: 'center',
-    marginTop: 8
-  },
-  price: {
-    fontSize: 22,
-    fontWeight: 800
-  },
-  mrp: {
-    textDecoration: 'line-through',
-    color: '#9ca3af'
-  },
-  discount: {
-    color: '#dc2626',
-    fontWeight: 700
-  },
-  meta: {
-    display: 'flex',
-    gap: 14,
-    marginTop: 6,
-    fontSize: 13
-  },
-  trust: {
-    color: '#2563eb',
-    fontWeight: 600
-  },
-  badges: {
-    display: 'flex',
-    gap: 8,
-    marginTop: 8
-  },
+  info: { flex: 1 },
+  title: { fontSize: 17, fontWeight: 700 },
+  merchant: { fontSize: 13, color: '#6b7280' },
+  priceRow: { display: 'flex', gap: 10, marginTop: 8 },
+  price: { fontSize: 22, fontWeight: 800 },
+  mrp: { textDecoration: 'line-through', color: '#9ca3af' },
+  discount: { color: '#dc2626', fontWeight: 700 },
+  meta: { display: 'flex', gap: 14, marginTop: 6, fontSize: 13 },
+  trust: { color: '#2563eb', fontWeight: 600 },
+  badges: { display: 'flex', gap: 8, marginTop: 8 },
   verified: {
     fontSize: 11,
     background: '#e0f2fe',
@@ -245,7 +184,6 @@ const styles: any = {
     fontWeight: 700
   },
   buy: {
-    display: 'inline-block',
     marginTop: 10,
     background: 'linear-gradient(135deg,#16a34a,#22c55e)',
     color: '#fff',
@@ -261,8 +199,6 @@ const styles: any = {
     padding: 16,
     borderRadius: 16,
     background: '#f8fafc',
-    border: '1px solid #e5e7eb',
-    fontSize: 14,
-    lineHeight: 1.6
+    border: '1px solid #e5e7eb'
   }
-}
+      }
