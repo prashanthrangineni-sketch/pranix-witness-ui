@@ -1,161 +1,214 @@
 'use client'
 
-import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-
-type Offer = {
-  product_name: string
-  merchant_name: string
-  price: number
-  original_price: number
-  image_url?: string | null
-  delivery_estimate?: string
-  trust_score?: number
-}
+import { useParams } from 'next/navigation'
 
 export default function ResultsPage() {
-  const params = useParams()
-  const snapshot_id = params?.snapshot_id as string
-
-  const [offers, setOffers] = useState<Offer[]>([])
+  const { snapshot_id } = useParams()
+  const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!snapshot_id) return
 
-    // MOCK OFFERS — until affiliate + ONDC integration
-    setTimeout(() => {
-      setOffers([
-        {
-          product_name: 'Basmati Rice 5kg',
-          merchant_name: 'Amazon Fresh',
-          price: 749,
-          original_price: 999,
-          trust_score: 0.92,
-          delivery_estimate: 'Tomorrow'
-        },
-        {
-          product_name: 'Basmati Rice 5kg',
-          merchant_name: 'Flipkart Grocery',
-          price: 779,
-          original_price: 999,
-          trust_score: 0.88,
-          delivery_estimate: '2 days'
-        },
-        {
-          product_name: 'Basmati Rice 5kg',
-          merchant_name: 'Local Kirana Store',
-          price: 699,
-          original_price: 899,
-          trust_score: 0.96,
-          delivery_estimate: '30 mins'
-        }
-      ])
-      setLoading(false)
-    }, 600)
+    fetch(`/api/results/${snapshot_id}`)
+      .then(res => res.json())
+      .then(json => {
+        setData(json)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [snapshot_id])
 
+  if (loading) {
+    return <div style={styles.center}>Loading results...</div>
+  }
+
+  if (!data || !data.results || data.results.length === 0) {
+    return <div style={styles.center}>No offers found.</div>
+  }
+
+  const bestPrice = Math.min(...data.results.map((r: any) => r.price || 999999))
+
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div style={styles.page}>
+      <h1 style={styles.heading}>Search Results</h1>
+      <p style={styles.sub}>Snapshot ID: {snapshot_id}</p>
 
-        {/* Header */}
-        <div className="bg-white rounded-xl p-4 mb-4 shadow">
-          <h2 className="text-xl font-bold">Search Results</h2>
-          <p className="text-sm text-gray-500">
-            Snapshot ID: <span className="font-mono">{snapshot_id}</span>
-          </p>
-        </div>
+      <div style={styles.list}>
+        {data.results.map((item: any, i: number) => {
+          const isBest = item.price === bestPrice
 
-        {/* Loading */}
-        {loading && (
-          <div className="text-center py-12 text-gray-600">
-            Finding best prices...
-          </div>
-        )}
+          return (
+            <div key={i} style={{ ...styles.card, ...(isBest ? styles.bestCard : {}) }}>
+              <div style={styles.imageBox}>Product Image</div>
 
-        {/* Results Grid */}
-        <div className="grid md:grid-cols-3 gap-4">
-          {offers.map((offer, idx) => {
-            const discount = Math.round(
-              ((offer.original_price - offer.price) /
-                offer.original_price) *
-                100
-            )
+              <div style={styles.info}>
+                <h2 style={styles.title}>{item.title}</h2>
+                <p style={styles.merchant}>Sold by {item.merchant}</p>
 
-            return (
-              <div
-                key={idx}
-                className="bg-white rounded-xl shadow hover:shadow-lg transition p-4 flex flex-col"
-              >
-                {/* Image Placeholder */}
-                <div className="h-40 bg-gray-100 rounded-lg mb-3 flex items-center justify-center text-gray-400">
-                  Product Image
+                <div style={styles.priceRow}>
+                  <span style={styles.price}>₹{item.price}</span>
+                  {item.original_price && (
+                    <span style={styles.mrp}>₹{item.original_price}</span>
+                  )}
+                  {item.discount && (
+                    <span style={styles.discount}>{item.discount}% off</span>
+                  )}
                 </div>
 
-                {/* Product */}
-                <h3 className="font-semibold text-lg">
-                  {offer.product_name}
-                </h3>
-
-                <p className="text-sm text-gray-500">
-                  Sold by {offer.merchant_name}
-                </p>
-
-                {/* Price */}
-                <div className="mt-2">
-                  <span className="text-2xl font-bold text-green-600">
-                    ₹{offer.price}
-                  </span>
-                  <span className="line-through ml-2 text-gray-400">
-                    ₹{offer.original_price}
-                  </span>
-                  <span className="ml-2 text-sm text-green-700 font-semibold">
-                    {discount}% off
-                  </span>
+                <div style={styles.meta}>
+                  <span>🚚 {item.delivery || '—'}</span>
+                  <span>🛡 Trust {item.trust || 90}%</span>
                 </div>
 
-                {/* Delivery */}
-                <p className="text-sm text-gray-600 mt-1">
-                  Delivery: {offer.delivery_estimate}
-                </p>
-
-                {/* Trust Badge */}
-                <div className="mt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        offer.trust_score! >= 0.9
-                          ? 'bg-green-100 text-green-700'
-                          : offer.trust_score! >= 0.8
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      Trust {(offer.trust_score! * 100).toFixed(0)}%
-                    </div>
-
-                    <span className="text-xs text-gray-500">
-                      Verified Price
-                    </span>
-                  </div>
-
-                  <button className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-indigo-700">
-                    Buy
-                  </button>
+                <div style={styles.badges}>
+                  <span style={styles.verified}>Verified Price</span>
+                  {isBest && <span style={styles.best}>Best Deal</span>}
                 </div>
+
+                <a
+                  href={item.buy_url || '#'}
+                  target="_blank"
+                  style={styles.buy}
+                  rel="noreferrer"
+                >
+                  Buy Now
+                </a>
               </div>
-            )
-          })}
-        </div>
+            </div>
+          )
+        })}
+      </div>
 
-        {/* Trust Explanation */}
-        <div className="mt-6 bg-white p-4 rounded-xl shadow text-sm text-gray-600">
-          <strong>Trust Score:</strong> Calculated using price history,
-          discount authenticity, merchant reliability, and platform risk.
-          This ensures transparent and manipulation-resistant shopping.
-        </div>
+      <div style={styles.trustBox}>
+        <strong>Trust Score:</strong> Calculated using price history, discount authenticity,
+        merchant reliability, and platform risk — ensuring transparent and
+        manipulation-resistant shopping.
       </div>
     </div>
   )
+}
+
+const styles: any = {
+  page: {
+    maxWidth: 900,
+    margin: '0 auto',
+    padding: 16,
+    fontFamily: 'system-ui, sans-serif'
+  },
+  center: {
+    padding: 40,
+    textAlign: 'center',
+    fontSize: 18
+  },
+  heading: {
+    fontSize: 26,
+    marginBottom: 4
+  },
+  sub: {
+    color: '#666',
+    marginBottom: 20
+  },
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 14
+  },
+  card: {
+    display: 'flex',
+    gap: 14,
+    border: '1px solid #ddd',
+    borderRadius: 12,
+    padding: 12,
+    background: '#fff'
+  },
+  bestCard: {
+    border: '2px solid #16a34a',
+    background: '#f0fdf4'
+  },
+  imageBox: {
+    width: 90,
+    height: 90,
+    borderRadius: 8,
+    background: '#eee',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 12,
+    color: '#666'
+  },
+  info: {
+    flex: 1
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 600,
+    marginBottom: 2
+  },
+  merchant: {
+    fontSize: 13,
+    color: '#666'
+  },
+  priceRow: {
+    display: 'flex',
+    gap: 10,
+    alignItems: 'center',
+    marginTop: 6
+  },
+  price: {
+    fontSize: 20,
+    fontWeight: 700
+  },
+  mrp: {
+    textDecoration: 'line-through',
+    color: '#888'
+  },
+  discount: {
+    color: '#dc2626',
+    fontWeight: 600
+  },
+  meta: {
+    display: 'flex',
+    gap: 14,
+    marginTop: 6,
+    fontSize: 13
+  },
+  badges: {
+    display: 'flex',
+    gap: 8,
+    marginTop: 6
+  },
+  verified: {
+    fontSize: 11,
+    background: '#e0f2fe',
+    padding: '2px 6px',
+    borderRadius: 6,
+    color: '#0369a1'
+  },
+  best: {
+    fontSize: 11,
+    background: '#dcfce7',
+    padding: '2px 6px',
+    borderRadius: 6,
+    color: '#166534'
+  },
+  buy: {
+    display: 'inline-block',
+    marginTop: 8,
+    background: '#4f46e5',
+    color: '#fff',
+    padding: '6px 14px',
+    borderRadius: 8,
+    textDecoration: 'none',
+    fontSize: 14
+  },
+  trustBox: {
+    marginTop: 30,
+    padding: 14,
+    borderRadius: 12,
+    background: '#f8fafc',
+    border: '1px solid #e5e7eb',
+    fontSize: 14
+  }
 }
