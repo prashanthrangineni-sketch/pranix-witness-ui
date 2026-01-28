@@ -21,11 +21,11 @@ export default function ResultsPage() {
   }, [snapshot_id])
 
   if (loading) {
-    return <div style={styles.loader}>Fetching best prices…</div>
+    return <div style={styles.center}>🔄 Loading verified offers...</div>
   }
 
   if (!data || !data.results || data.results.length === 0) {
-    return <div style={styles.center}>No offers found.</div>
+    return <div style={styles.center}>❌ No offers found.</div>
   }
 
   const bestPrice = Math.min(...data.results.map((r: any) => r.price || 999999))
@@ -35,7 +35,7 @@ export default function ResultsPage() {
       <h1 style={styles.heading}>Search Results</h1>
       <p style={styles.sub}>Snapshot ID: {snapshot_id}</p>
 
-      <div style={styles.grid}>
+      <div style={styles.list}>
         {data.results.map((item: any, i: number) => {
           const isBest = item.price === bestPrice
 
@@ -65,7 +65,7 @@ export default function ResultsPage() {
 
                 <div style={styles.meta}>
                   <span>🚚 {item.delivery || '—'}</span>
-                  <span style={styles.trustBadge}>🛡 {item.trust || 90}% Trust</span>
+                  <span style={styles.trust}>🛡 {item.trust || 90}% Trust</span>
                 </div>
 
                 <div style={styles.badges}>
@@ -88,8 +88,9 @@ export default function ResultsPage() {
       </div>
 
       <div style={styles.trustBox}>
-        <strong>Trust Engine:</strong> Scores derived from price history, discount
-        authenticity, merchant reliability & platform risk — ensuring manipulation-resistant shopping.
+        <strong>Trust Score:</strong> Calculated using price history, discount authenticity,
+        merchant reliability, and platform risk — ensuring transparent and
+        manipulation-resistant shopping.
       </div>
     </div>
   )
@@ -97,73 +98,65 @@ export default function ResultsPage() {
 
 const styles: any = {
   page: {
-    maxWidth: 1200,
+    maxWidth: 900,
     margin: '0 auto',
     padding: 16,
-    fontFamily: 'system-ui, sans-serif',
-    background: '#fafafa'
-  },
-  loader: {
-    padding: 60,
-    textAlign: 'center',
-    fontSize: 20,
-    fontWeight: 600
+    fontFamily: 'system-ui, sans-serif'
   },
   center: {
-    padding: 50,
+    padding: 40,
     textAlign: 'center',
     fontSize: 18
   },
   heading: {
     fontSize: 28,
-    fontWeight: 700
+    marginBottom: 4
   },
   sub: {
     color: '#666',
-    marginBottom: 24
+    marginBottom: 20
   },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))',
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
     gap: 16
   },
   card: {
     display: 'flex',
     gap: 14,
-    borderRadius: 14,
-    padding: 14,
-    background: '#fff',
     border: '1px solid #e5e7eb',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.04)',
-    transition: '0.2s ease'
+    borderRadius: 16,
+    padding: 14,
+    background: '#ffffff',
+    boxShadow: '0 6px 18px rgba(0,0,0,0.04)'
   },
   bestCard: {
     border: '2px solid #22c55e',
-    background: '#f0fdf4'
+    background: '#f0fdf4',
+    boxShadow: '0 6px 22px rgba(34,197,94,0.15)'
   },
   imageBox: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    background: '#f1f5f9',
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    background: '#f3f4f6',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#64748b'
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: 600
   },
   info: {
     flex: 1
   },
   title: {
     fontSize: 17,
-    fontWeight: 700,
-    marginBottom: 4
+    fontWeight: 700
   },
   merchant: {
     fontSize: 13,
-    color: '#64748b'
+    color: '#6b7280'
   },
   priceRow: {
     display: 'flex',
@@ -177,24 +170,20 @@ const styles: any = {
   },
   mrp: {
     textDecoration: 'line-through',
-    color: '#94a3b8'
+    color: '#9ca3af'
   },
   discount: {
     color: '#dc2626',
-    fontWeight: 700,
-    fontSize: 13
+    fontWeight: 700
   },
   meta: {
     display: 'flex',
-    gap: 12,
+    gap: 14,
     marginTop: 6,
     fontSize: 13
   },
-  trustBadge: {
-    background: '#ecfeff',
-    padding: '2px 6px',
-    borderRadius: 6,
-    color: '#0369a1',
+  trust: {
+    color: '#2563eb',
     fontWeight: 600
   },
   badges: {
@@ -203,38 +192,39 @@ const styles: any = {
     marginTop: 8
   },
   verified: {
-    background: '#dbeafe',
+    fontSize: 11,
+    background: '#e0f2fe',
     padding: '3px 8px',
     borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#1e40af'
+    color: '#0369a1',
+    fontWeight: 600
   },
   best: {
+    fontSize: 11,
     background: '#dcfce7',
     padding: '3px 8px',
     borderRadius: 999,
-    fontSize: 11,
-    fontWeight: 600,
-    color: '#166534'
+    color: '#166534',
+    fontWeight: 700
   },
   buy: {
     display: 'inline-block',
     marginTop: 10,
-    background: '#4f46e5',
+    background: 'linear-gradient(135deg,#4f46e5,#6366f1)',
     color: '#fff',
     padding: '8px 18px',
-    borderRadius: 10,
+    borderRadius: 999,
     textDecoration: 'none',
     fontSize: 14,
     fontWeight: 600
   },
   trustBox: {
     marginTop: 30,
-    padding: 18,
-    borderRadius: 14,
+    padding: 16,
+    borderRadius: 16,
     background: '#f8fafc',
     border: '1px solid #e5e7eb',
-    fontSize: 14
+    fontSize: 14,
+    lineHeight: 1.6
   }
-  }
+    }
