@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react'
 
+const DEMO_MERCHANT_ID = '11111111-1111-1111-1111-111111111111'
+
 export default function MerchantDashboard() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOrders()
@@ -13,9 +14,7 @@ export default function MerchantDashboard() {
 
   async function fetchOrders() {
     try {
-      const res = await fetch('/api/merchant/orders', {
-        cache: 'no-store'
-      })
+      const res = await fetch(`/api/merchant/orders?merchant_id=${DEMO_MERCHANT_ID}`)
       const json = await res.json()
       setOrders(json.orders || [])
     } catch (err) {
@@ -26,35 +25,22 @@ export default function MerchantDashboard() {
   }
 
   async function updateStatus(id: string, status: string) {
-    setUpdating(id)
-
-    try {
-      const res = await fetch('/api/merchant/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, status })
+    await fetch('/api/merchant/update-status', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        status,
+        merchant_id: DEMO_MERCHANT_ID
       })
+    })
 
-      const json = await res.json()
-
-      if (!res.ok) {
-        alert(json.error || 'Status update failed')
-      }
-    } catch (err) {
-      alert('Status update API failed')
-    } finally {
-      setUpdating(null)
-      fetchOrders()
-    }
+    fetchOrders()
   }
 
-  if (loading) {
-    return <div style={styles.center}>Loading orders...</div>
-  }
+  if (loading) return <div style={styles.center}>Loading orders...</div>
 
-  if (!orders.length) {
-    return <div style={styles.center}>No orders yet</div>
-  }
+  if (!orders.length) return <div style={styles.center}>No orders yet</div>
 
   return (
     <div style={styles.page}>
@@ -79,18 +65,12 @@ export default function MerchantDashboard() {
           </div>
 
           <div style={styles.actions}>
-            <button
-              disabled={updating === order.id}
-              onClick={() => updateStatus(order.id, 'PREPARING')}
-            >
-              {updating === order.id ? 'Updating...' : 'Accept'}
+            <button onClick={() => updateStatus(order.id, 'PREPARING')}>
+              Accept
             </button>
 
-            <button
-              disabled={updating === order.id}
-              onClick={() => updateStatus(order.id, 'READY_FOR_PICKUP')}
-            >
-              {updating === order.id ? 'Updating...' : 'Ready'}
+            <button onClick={() => updateStatus(order.id, 'READY_FOR_PICKUP')}>
+              Ready
             </button>
           </div>
         </div>
