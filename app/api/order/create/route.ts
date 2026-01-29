@@ -13,23 +13,24 @@ export async function POST(req: Request) {
       )
     }
 
-    // 🔍 Find merchant_id from merchants table
+    // 🔹 STEP 1 — Resolve merchant_id from merchants table
     const { data: merchantRow, error: merchantError } = await supabase
       .from('merchants')
-      .select('id')
-      .eq('name', merchant)
+      .select('id, business_name')
+      .ilike('business_name', `%${merchant}%`)
       .single()
 
     if (merchantError || !merchantRow) {
       console.error('Merchant lookup failed:', merchantError)
       return NextResponse.json(
         { error: 'Merchant not found' },
-        { status: 400 }
+        { status: 404 }
       )
     }
 
     const merchant_id = merchantRow.id
 
+    // 🔹 STEP 2 — Create order
     const order_id = `ORD-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`
@@ -41,11 +42,13 @@ export async function POST(req: Request) {
         snapshot_id,
         product_title,
         merchant,
-        merchant_id, // ✅ THIS IS THE FIX
+        merchant_id,
         price,
+        quantity: 1,
         total_amount: price,
         currency: 'INR',
-        status: 'PENDING'
+        status: 'PENDING',
+        payment_status: 'PENDING'
       })
       .select()
       .single()
