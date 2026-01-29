@@ -5,12 +5,12 @@ export async function GET() {
   const { data, error } = await supabase
     .from('orders')
     .select('*')
+    .eq('merchant', 'Local Kirana Store')
     .order('created_at', { ascending: false })
-    .limit(50)
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ orders: data })
+  return NextResponse.json({ orders: data || [] })
 }
