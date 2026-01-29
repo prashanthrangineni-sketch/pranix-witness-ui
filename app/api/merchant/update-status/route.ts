@@ -11,26 +11,55 @@ const supabase = createClient(
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { id, status } = body
+    const { id, status, merchant_id } = body
 
-    if (!id || !status) {
+    if (!id || !status || !merchant_id) {
       return NextResponse.json(
-        { error: 'Missing id or status' },
+        { error: 'Missing id or status or merchant_id' },
         { status: 400 }
       )
     }
 
+    // 1️⃣ Update order status
     const { error } = await supabase
       .from('orders')
-      .update({ status })
+      .update({
+        status,
+        delivery_status:
+          status === 'READY_FOR_PICKUP' ? 'READY_FOR_PICKUP' : status
+      })
       .eq('id', id)
 
     if (error) {
+      console.error('Order update error:', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // 2️⃣ Auto assign gig when READY
+    if (status === 'READY_FOR_PICKUP') {
+      const { error: gigError } = await supabase
+        .from('gig_assignments')
+        .insert({
+          order_id: id,
+          merchant_id,
+          status: 'ASSIGNED'
+        })
+
+      if (gigError) {
+        console.error('Gig assign error:', gigError)
+        return NextResponse.json(
+          { error: gigError.message },
+          { status: 500 }
+        )
+      }
+    }
+
     return NextResponse.json({ success: true })
-  } catch (err) {
-    return NextResponse.json({ error: 'Server error' }, { status: 500 })
+  } catch (err: any) {
+    console.error('Update API crash:', err)
+    return NextResponse.json(
+      { error: err.message || 'Server error' },
+      { status: 500 }
+    )
   }
 }
