@@ -2,12 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
 export async function POST(req: Request) {
-  const body = await req.json()
-  const { order_id, status } = body
-
-  if (!order_id || !status) {
-    return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-  }
+  const { order_id, status } = await req.json()
 
   const { error } = await supabase
     .from('orders')
