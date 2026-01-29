@@ -14,27 +14,57 @@ export async function GET(req: Request) {
     const assignment_id = searchParams.get('assignment_id')
 
     if (!assignment_id) {
-      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Missing assignment_id' },
+        { status: 400 }
+      )
     }
 
-    const { data, error } = await supabase
+    // 1. Mark gig as delivered
+    const { data: gig, error: gigError } = await supabase
       .from('gig_assignments')
-      .update({ status: 'DELIVERED', delivered_at: new Date().toISOString() })
+      .update({
+        status: 'DELIVERED',
+        delivered_at: new Date().toISOString()
+      })
       .eq('assignment_id', assignment_id)
       .select('order_id')
       .single()
 
-    if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Assignment not found' }, { status: 500 })
+    if (gigError || !gig) {
+      return NextResponse.json(
+        { error: gigError?.message || 'Gig not found' },
+        { status: 500 }
+      )
     }
 
-    await supabase
-      .from('orders')
-      .update({ delivery_status: 'DELIVERED', status: 'COMPLETED' })
-      .eq('order_id', data.order_id)
+    const order_id = gig.order_id
 
-    return NextResponse.json({ success: true })
+    // 2. Update order delivery status
+    const { error: orderError } = await supabase
+      .from('orders')
+      .update({
+        delivery_status: 'DELIVERED',
+        status: 'COMPLETED'
+      })
+      .eq('order_id', order_id)
+
+    if (orderError) {
+      return NextResponse.json(
+        { error: orderError.message },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      order_id,
+      final_status: 'DELIVERED'
+    })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: err.message || 'Server error' },
+      { status: 500 }
+    )
   }
 }
