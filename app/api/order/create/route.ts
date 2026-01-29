@@ -13,6 +13,23 @@ export async function POST(req: Request) {
       )
     }
 
+    // 🔍 Find merchant_id from merchants table
+    const { data: merchantRow, error: merchantError } = await supabase
+      .from('merchants')
+      .select('id')
+      .eq('name', merchant)
+      .single()
+
+    if (merchantError || !merchantRow) {
+      console.error('Merchant lookup failed:', merchantError)
+      return NextResponse.json(
+        { error: 'Merchant not found' },
+        { status: 400 }
+      )
+    }
+
+    const merchant_id = merchantRow.id
+
     const order_id = `ORD-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`
@@ -24,8 +41,10 @@ export async function POST(req: Request) {
         snapshot_id,
         product_title,
         merchant,
+        merchant_id, // ✅ THIS IS THE FIX
         price,
-        total_amount: price,   // 🔥 REQUIRED FIX
+        total_amount: price,
+        currency: 'INR',
         status: 'PENDING'
       })
       .select()
