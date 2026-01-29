@@ -17,45 +17,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
     }
 
-    // 1️⃣ Fetch the order_id from gig_assignments
-    const { data: assignment, error: fetchError } = await supabase
+    const { data: assignment } = await supabase
       .from('gig_assignments')
-      .select('order_id')
+      .select('*')
       .eq('assignment_id', assignment_id)
       .single()
 
-    if (fetchError || !assignment) {
-      return NextResponse.json({ error: 'Invalid assignment_id' }, { status: 400 })
+    if (!assignment) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
     }
 
-    const order_id = assignment.order_id
-
-    // 2️⃣ Mark gig delivered
     await supabase
       .from('gig_assignments')
-      .update({
-        status: 'DELIVERED',
-        delivered_at: new Date().toISOString()
-      })
+      .update({ status: 'DELIVERED', delivered_at: new Date().toISOString() })
       .eq('assignment_id', assignment_id)
 
-    // 3️⃣ Mark order delivered + completed
     await supabase
       .from('orders')
-      .update({
-        delivery_status: 'DELIVERED',
-        status: 'COMPLETED'
-      })
-      .eq('id', order_id)
+      .update({ delivery_status: 'DELIVERED' })
+      .eq('order_id', assignment.order_id)
 
-    return NextResponse.json({
-      success: true,
-      order_id,
-      delivery_status: 'DELIVERED'
-    })
+    // Trigger settlement
+    await fetch(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/api/settlement/trigger`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: assignment.order_id })
+      }
+    )
+
+    return NextResponse.json({ success: true })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message || 'Server error' },
+      { error: err.message || 'Delivery failure' },
       { status: 500 }
     )
   }
