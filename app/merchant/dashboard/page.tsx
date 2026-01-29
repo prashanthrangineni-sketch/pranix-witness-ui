@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 export default function MerchantDashboard() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [working, setWorking] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOrders()
@@ -22,14 +23,33 @@ export default function MerchantDashboard() {
     }
   }
 
-  async function updateStatus(id: string, status: string) {
-    await fetch('/api/merchant/update-status', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status })
-    })
+  async function updateStatus(order: any, status: string) {
+    setWorking(order.id)
 
-    fetchOrders()
+    try {
+      const res = await fetch('/api/merchant/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: order.id,
+          status,
+          merchant_id: order.merchant_id
+        })
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        alert(json?.error || 'Status update failed')
+      } else {
+        fetchOrders()
+      }
+    } catch (err) {
+      console.error('Update failed', err)
+      alert('Update failed')
+    } finally {
+      setWorking(null)
+    }
   }
 
   if (loading) {
@@ -63,12 +83,18 @@ export default function MerchantDashboard() {
           </div>
 
           <div style={styles.actions}>
-            <button onClick={() => updateStatus(order.id, 'PREPARING')}>
-              Accept
+            <button
+              disabled={working === order.id}
+              onClick={() => updateStatus(order, 'PREPARING')}
+            >
+              {working === order.id ? '...' : 'Accept'}
             </button>
 
-            <button onClick={() => updateStatus(order.id, 'READY_FOR_PICKUP')}>
-              Ready
+            <button
+              disabled={working === order.id}
+              onClick={() => updateStatus(order, 'READY_FOR_PICKUP')}
+            >
+              {working === order.id ? '...' : 'Ready'}
             </button>
           </div>
         </div>
