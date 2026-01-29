@@ -1,3 +1,5 @@
+export const runtime = 'nodejs'
+
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
@@ -6,18 +8,25 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-export async function POST(req: Request) {
-  const { gig_id, order_id } = await req.json()
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const assignment_id = searchParams.get('assignment_id')
 
-  await supabase
-    .from('gig_assignments')
-    .update({ status: 'PICKED_UP', picked_at: new Date() })
-    .eq('id', gig_id)
+    if (!assignment_id) {
+      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
+    }
 
-  await supabase
-    .from('orders')
-    .update({ delivery_status: 'IN_TRANSIT' })
-    .eq('id', order_id)
+    await supabase
+      .from('gig_assignments')
+      .update({ status: 'PICKED_UP' })
+      .eq('assignment_id', assignment_id)
 
-  return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || 'Server error' },
+      { status: 500 }
+    )
+  }
 }
