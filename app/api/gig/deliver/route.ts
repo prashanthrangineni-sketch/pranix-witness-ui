@@ -14,52 +14,44 @@ export async function GET(req: Request) {
     const assignment_id = searchParams.get('assignment_id')
 
     if (!assignment_id) {
-      return NextResponse.json(
-        { error: 'Missing assignment_id' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
     }
 
-    // 1. Mark gig as delivered
-    const { data: gig, error: gigError } = await supabase
+    // 1️⃣ Fetch the order_id from gig_assignments
+    const { data: assignment, error: fetchError } = await supabase
+      .from('gig_assignments')
+      .select('order_id')
+      .eq('assignment_id', assignment_id)
+      .single()
+
+    if (fetchError || !assignment) {
+      return NextResponse.json({ error: 'Invalid assignment_id' }, { status: 400 })
+    }
+
+    const order_id = assignment.order_id
+
+    // 2️⃣ Mark gig delivered
+    await supabase
       .from('gig_assignments')
       .update({
         status: 'DELIVERED',
         delivered_at: new Date().toISOString()
       })
       .eq('assignment_id', assignment_id)
-      .select('order_id')
-      .single()
 
-    if (gigError || !gig) {
-      return NextResponse.json(
-        { error: gigError?.message || 'Gig not found' },
-        { status: 500 }
-      )
-    }
-
-    const order_id = gig.order_id
-
-    // 2. Update order delivery status
-    const { error: orderError } = await supabase
+    // 3️⃣ Mark order delivered + completed
+    await supabase
       .from('orders')
       .update({
         delivery_status: 'DELIVERED',
         status: 'COMPLETED'
       })
-      .eq('order_id', order_id)
-
-    if (orderError) {
-      return NextResponse.json(
-        { error: orderError.message },
-        { status: 500 }
-      )
-    }
+      .eq('id', order_id)
 
     return NextResponse.json({
       success: true,
       order_id,
-      final_status: 'DELIVERED'
+      delivery_status: 'DELIVERED'
     })
   } catch (err: any) {
     return NextResponse.json(
