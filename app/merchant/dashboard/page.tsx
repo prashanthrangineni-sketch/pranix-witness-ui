@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 export default function MerchantDashboard() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [working, setWorking] = useState<string | null>(null)
+  const [updating, setUpdating] = useState<string | null>(null)
 
   useEffect(() => {
     fetchOrders()
@@ -13,7 +13,9 @@ export default function MerchantDashboard() {
 
   async function fetchOrders() {
     try {
-      const res = await fetch('/api/merchant/orders')
+      const res = await fetch('/api/merchant/orders', {
+        cache: 'no-store'
+      })
       const json = await res.json()
       setOrders(json.orders || [])
     } catch (err) {
@@ -23,32 +25,26 @@ export default function MerchantDashboard() {
     }
   }
 
-  async function updateStatus(order: any, status: string) {
-    setWorking(order.id)
+  async function updateStatus(id: string, status: string) {
+    setUpdating(id)
 
     try {
       const res = await fetch('/api/merchant/update-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: order.id,
-          status,
-          merchant_id: order.merchant_id
-        })
+        body: JSON.stringify({ id, status })
       })
 
       const json = await res.json()
 
       if (!res.ok) {
-        alert(json?.error || 'Status update failed')
-      } else {
-        fetchOrders()
+        alert(json.error || 'Status update failed')
       }
     } catch (err) {
-      console.error('Update failed', err)
-      alert('Update failed')
+      alert('Status update API failed')
     } finally {
-      setWorking(null)
+      setUpdating(null)
+      fetchOrders()
     }
   }
 
@@ -84,17 +80,17 @@ export default function MerchantDashboard() {
 
           <div style={styles.actions}>
             <button
-              disabled={working === order.id}
-              onClick={() => updateStatus(order, 'PREPARING')}
+              disabled={updating === order.id}
+              onClick={() => updateStatus(order.id, 'PREPARING')}
             >
-              {working === order.id ? '...' : 'Accept'}
+              {updating === order.id ? 'Updating...' : 'Accept'}
             </button>
 
             <button
-              disabled={working === order.id}
-              onClick={() => updateStatus(order, 'READY_FOR_PICKUP')}
+              disabled={updating === order.id}
+              onClick={() => updateStatus(order.id, 'READY_FOR_PICKUP')}
             >
-              {working === order.id ? '...' : 'Ready'}
+              {updating === order.id ? 'Updating...' : 'Ready'}
             </button>
           </div>
         </div>
