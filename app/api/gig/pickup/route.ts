@@ -10,8 +10,7 @@ const supabase = createClient(
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url)
-    const assignment_id = searchParams.get('assignment_id')
+    const assignment_id = new URL(req.url).searchParams.get('assignment_id')
 
     if (!assignment_id) {
       return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
@@ -19,7 +18,10 @@ export async function GET(req: Request) {
 
     await supabase
       .from('gig_assignments')
-      .update({ status: 'PICKED_UP' })
+      .update({
+        status: 'PICKED_UP',
+        picked_at: new Date().toISOString()
+      })
       .eq('assignment_id', assignment_id)
 
     return NextResponse.json({ success: true })
