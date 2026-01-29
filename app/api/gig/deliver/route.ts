@@ -14,43 +14,62 @@ export async function GET(req: Request) {
     const assignment_id = searchParams.get('assignment_id')
 
     if (!assignment_id) {
-      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Missing assignment_id' },
+        { status: 400 }
+      )
     }
 
-    const { data: assignment } = await supabase
+    // 1️⃣ Mark gig assignment delivered
+    const { data: assignment, error: assignErr } = await supabase
       .from('gig_assignments')
-      .select('*')
+      .update({
+        status: 'DELIVERED',
+        delivered_at: new Date().toISOString()
+      })
       .eq('assignment_id', assignment_id)
+      .select('order_id')
       .single()
 
-    if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+    if (assignErr || !assignment?.order_id) {
+      return NextResponse.json(
+        { error: assignErr?.message || 'Assignment not found' },
+        { status: 500 }
+      )
     }
 
-    await supabase
-      .from('gig_assignments')
-      .update({ status: 'DELIVERED', delivered_at: new Date().toISOString() })
-      .eq('assignment_id', assignment_id)
+    const order_id = assignment.order_id
 
+    // 2️⃣ Update order delivery_status
     await supabase
       .from('orders')
       .update({ delivery_status: 'DELIVERED' })
-      .eq('order_id', assignment.order_id)
+      .eq('order_id', order_id)
 
-    // Trigger settlement
-    await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL}/api/settlement/trigger`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: assignment.order_id })
-      }
-    )
+    // 3️⃣ Trigger settlement dynamically using current deployment URL
+    const baseUrl = req.headers.get('origin')
 
-    return NextResponse.json({ success: true })
+    if (!baseUrl) {
+      return NextResponse.json(
+        { error: 'Unable to detect base URL' },
+        { status: 500 }
+      )
+    }
+
+    await fetch(`${baseUrl}/api/settlement/trigger`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id })
+    })
+
+    return NextResponse.json({
+      success: true,
+      order_id,
+      settlement_triggered: true
+    })
   } catch (err: any) {
     return NextResponse.json(
-      { error: err.message || 'Delivery failure' },
+      { error: err.message || 'Internal Server Error' },
       { status: 500 }
     )
   }
