@@ -1,31 +1,29 @@
-export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseClient'
 
-const DEMO_MERCHANT_ID = '11111111-1111-1111-1111-111111111111'
-
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url)
+    const merchant_id = searchParams.get('merchant_id')
+
+    if (!merchant_id) {
+      return NextResponse.json(
+        { error: 'Missing merchant_id' },
+        { status: 400 }
+      )
+    }
+
     const { data, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('merchant_id', DEMO_MERCHANT_ID)
+      .eq('merchant_id', merchant_id)
       .order('created_at', { ascending: false })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(
-      { orders: data || [] },
-      {
-        headers: {
-          'Cache-Control': 'no-store, max-age=0'
-        }
-      }
-    )
+    return NextResponse.json({ orders: data || [] })
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message || 'Internal Server Error' },
