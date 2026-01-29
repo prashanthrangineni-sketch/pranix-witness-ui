@@ -8,39 +8,29 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const DEMO_MERCHANT_ID = '11111111-1111-1111-1111-111111111111'
-
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { id, status } = body
+    const { id, status, merchant_id } = await req.json()
 
-    if (!id || !status) {
+    if (!id || !status || !merchant_id) {
       return NextResponse.json(
-        { error: 'Missing id or status' },
+        { error: 'Missing id or status or merchant_id' },
         { status: 400 }
       )
     }
 
     const { error } = await supabase
       .from('orders')
-      .update({ status, merchant_id: DEMO_MERCHANT_ID })
+      .update({ status })
       .eq('id', id)
+      .eq('merchant_id', merchant_id)
 
     if (error) {
-      console.error('Update error:', error)
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     return NextResponse.json({ success: true })
   } catch (err) {
-    console.error('Server error:', err)
-    return NextResponse.json(
-      { error: 'Server failure' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Server error' }, { status: 500 })
   }
 }
