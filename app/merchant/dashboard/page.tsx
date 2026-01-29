@@ -14,7 +14,6 @@ export default function MerchantDashboard() {
     try {
       const res = await fetch('/api/merchant/orders')
       const json = await res.json()
-
       setOrders(json.orders || [])
     } catch (err) {
       console.error('Failed to fetch orders', err)
@@ -23,11 +22,11 @@ export default function MerchantDashboard() {
     }
   }
 
-  async function updateStatus(order_id: string, status: string) {
+  async function updateStatus(id: string, status: string) {
     await fetch('/api/merchant/update-status', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id, status })
+      body: JSON.stringify({ id, status })
     })
 
     fetchOrders()
@@ -46,7 +45,7 @@ export default function MerchantDashboard() {
       <h1 style={styles.heading}>🏪 Merchant Command Center</h1>
 
       {orders.map(order => (
-        <div key={order.order_id} style={styles.card}>
+        <div key={order.id} style={styles.card}>
           <div style={styles.row}>
             <strong>Order:</strong> {order.order_id}
           </div>
@@ -64,11 +63,11 @@ export default function MerchantDashboard() {
           </div>
 
           <div style={styles.actions}>
-            <button onClick={() => updateStatus(order.order_id, 'PREPARING')}>
+            <button onClick={() => updateStatus(order.id, 'PREPARING')}>
               Accept
             </button>
 
-            <button onClick={() => updateStatus(order.order_id, 'READY_FOR_PICKUP')}>
+            <button onClick={() => updateStatus(order.id, 'READY_FOR_PICKUP')}>
               Ready
             </button>
           </div>
