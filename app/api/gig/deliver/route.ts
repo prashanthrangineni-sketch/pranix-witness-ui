@@ -20,7 +20,7 @@ export async function GET(req: Request) {
       )
     }
 
-    // 1️⃣ Mark gig assignment delivered
+    // 1️⃣ Mark gig delivered
     const { data: assignment, error: assignErr } = await supabase
       .from('gig_assignments')
       .update({
@@ -40,22 +40,16 @@ export async function GET(req: Request) {
 
     const order_id = assignment.order_id
 
-    // 2️⃣ Update order delivery_status
+    // 2️⃣ Update order
     await supabase
       .from('orders')
       .update({ delivery_status: 'DELIVERED' })
       .eq('order_id', order_id)
 
-    // 3️⃣ Trigger settlement dynamically using current deployment URL
-    const baseUrl = req.headers.get('origin')
+    // 3️⃣ Get deployment-safe base URL
+    const baseUrl = new URL(req.url).origin
 
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: 'Unable to detect base URL' },
-        { status: 500 }
-      )
-    }
-
+    // 4️⃣ Trigger settlement
     await fetch(`${baseUrl}/api/settlement/trigger`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
