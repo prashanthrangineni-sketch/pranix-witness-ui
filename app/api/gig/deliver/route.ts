@@ -8,9 +8,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// UUID regex
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+// UUID detector
+function isUUID(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
 
 export async function GET(req: Request) {
   try {
@@ -24,26 +25,37 @@ export async function GET(req: Request) {
       )
     }
 
-    // Decide which column to query
-    const isUUID = UUID_REGEX.test(assignment_id)
+    let gig
 
-    const query = supabase
-      .from('gig_assignments')
-      .select('id, order_id')
+    // 🔐 SAFE QUERY BRANCHING
+    if (isUUID(assignment_id)) {
+      const { data, error } = await supabase
+        .from('gig_assignments')
+        .select('id, order_id')
+        .eq('id', assignment_id)
+        .single()
 
-    const { data: gig, error: fetchError } = isUUID
-      ? await query.eq('id', assignment_id).single()
-      : await query.eq('assignment_id', assignment_id).single()
+      if (error || !data) {
+        return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+      }
 
-    if (fetchError || !gig) {
-      return NextResponse.json(
-        { error: 'Gig not found' },
-        { status: 404 }
-      )
+      gig = data
+    } else {
+      const { data, error } = await supabase
+        .from('gig_assignments')
+        .select('id, order_id')
+        .eq('assignment_id', assignment_id)
+        .single()
+
+      if (error || !data) {
+        return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+      }
+
+      gig = data
     }
 
-    // Update gig status
-    const { error: updateGigError } = await supabase
+    // ✅ Update gig
+    await supabase
       .from('gig_assignments')
       .update({
         status: 'DELIVERED',
@@ -51,14 +63,7 @@ export async function GET(req: Request) {
       })
       .eq('id', gig.id)
 
-    if (updateGigError) {
-      return NextResponse.json(
-        { error: updateGigError.message },
-        { status: 500 }
-      )
-    }
-
-    // Update order delivery status
+    // ✅ Update order
     await supabase
       .from('orders')
       .update({
