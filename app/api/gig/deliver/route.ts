@@ -8,6 +8,10 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// UUID regex
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
@@ -20,12 +24,16 @@ export async function GET(req: Request) {
       )
     }
 
-    // 1. Find gig row by either UUID or assignment_id
-    const { data: gig, error: fetchError } = await supabase
+    // Decide which column to query
+    const isUUID = UUID_REGEX.test(assignment_id)
+
+    const query = supabase
       .from('gig_assignments')
       .select('id, order_id')
-      .or(`id.eq.${assignment_id},assignment_id.eq.${assignment_id}`)
-      .single()
+
+    const { data: gig, error: fetchError } = isUUID
+      ? await query.eq('id', assignment_id).single()
+      : await query.eq('assignment_id', assignment_id).single()
 
     if (fetchError || !gig) {
       return NextResponse.json(
@@ -34,8 +42,8 @@ export async function GET(req: Request) {
       )
     }
 
-    // 2. Update gig status → DELIVERED
-    const { error: updateError } = await supabase
+    // Update gig status
+    const { error: updateGigError } = await supabase
       .from('gig_assignments')
       .update({
         status: 'DELIVERED',
@@ -43,14 +51,14 @@ export async function GET(req: Request) {
       })
       .eq('id', gig.id)
 
-    if (updateError) {
+    if (updateGigError) {
       return NextResponse.json(
-        { error: updateError.message },
+        { error: updateGigError.message },
         { status: 500 }
       )
     }
 
-    // 3. Update order delivery status → DELIVERED
+    // Update order delivery status
     await supabase
       .from('orders')
       .update({
