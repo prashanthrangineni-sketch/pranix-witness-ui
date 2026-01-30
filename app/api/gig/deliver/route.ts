@@ -8,7 +8,6 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// UUID detector
 function isUUID(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
@@ -19,15 +18,12 @@ export async function GET(req: Request) {
     const assignment_id = searchParams.get('assignment_id')
 
     if (!assignment_id) {
-      return NextResponse.json(
-        { error: 'Missing assignment_id' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
     }
 
     let gig
 
-    // 🔐 SAFE QUERY BRANCHING
+    // Fetch gig safely
     if (isUUID(assignment_id)) {
       const { data, error } = await supabase
         .from('gig_assignments')
@@ -35,9 +31,7 @@ export async function GET(req: Request) {
         .eq('id', assignment_id)
         .single()
 
-      if (error || !data) {
-        return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
-      }
+      if (error || !data) return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
 
       gig = data
     } else {
@@ -47,14 +41,12 @@ export async function GET(req: Request) {
         .eq('assignment_id', assignment_id)
         .single()
 
-      if (error || !data) {
-        return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
-      }
+      if (error || !data) return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
 
       gig = data
     }
 
-    // ✅ Update gig
+    // 1️⃣ Update gig assignment
     await supabase
       .from('gig_assignments')
       .update({
@@ -63,14 +55,26 @@ export async function GET(req: Request) {
       })
       .eq('id', gig.id)
 
-    // ✅ Update order
-    await supabase
+    // 2️⃣ Update order by UUID id
+    const { data: updated } = await supabase
       .from('orders')
       .update({
         delivery_status: 'DELIVERED',
         delivered_at: new Date().toISOString()
       })
       .eq('id', gig.order_id)
+      .select()
+
+    // 3️⃣ SAFETY FALLBACK — update by order_id string if needed
+    if (!updated || updated.length === 0) {
+      await supabase
+        .from('orders')
+        .update({
+          delivery_status: 'DELIVERED',
+          delivered_at: new Date().toISOString()
+        })
+        .eq('order_id', gig.order_id)
+    }
 
     return NextResponse.json({
       success: true,
@@ -78,9 +82,6 @@ export async function GET(req: Request) {
       order_id: gig.order_id
     })
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || 'Server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
   }
 }
