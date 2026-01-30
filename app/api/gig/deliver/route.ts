@@ -14,38 +14,55 @@ export async function GET(req: Request) {
     const assignment_id = searchParams.get('assignment_id')
 
     if (!assignment_id) {
-      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Missing assignment_id' },
+        { status: 400 }
+      )
     }
 
-    // 1️⃣ Mark gig assignment DELIVERED
-    const { data: gig, error: gigErr } = await supabase
+    // 1. Find gig row by either UUID or assignment_id
+    const { data: gig, error: fetchError } = await supabase
+      .from('gig_assignments')
+      .select('id, order_id')
+      .or(`id.eq.${assignment_id},assignment_id.eq.${assignment_id}`)
+      .single()
+
+    if (fetchError || !gig) {
+      return NextResponse.json(
+        { error: 'Gig not found' },
+        { status: 404 }
+      )
+    }
+
+    // 2. Update gig status → DELIVERED
+    const { error: updateError } = await supabase
       .from('gig_assignments')
       .update({
         status: 'DELIVERED',
         delivered_at: new Date().toISOString()
       })
-      .eq('assignment_id', assignment_id)
-      .select()
-      .single()
+      .eq('id', gig.id)
 
-    if (gigErr || !gig) {
-      return NextResponse.json({ error: 'Gig not found' }, { status: 404 })
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 }
+      )
     }
 
-    // 2️⃣ Update order delivery status
-    const { error: orderErr } = await supabase
+    // 3. Update order delivery status → DELIVERED
+    await supabase
       .from('orders')
-      .update({ delivery_status: 'DELIVERED' })
-      .eq('order_id', gig.order_id)
-
-    if (orderErr) {
-      return NextResponse.json({ error: orderErr.message }, { status: 500 })
-    }
+      .update({
+        delivery_status: 'DELIVERED',
+        delivered_at: new Date().toISOString()
+      })
+      .eq('id', gig.order_id)
 
     return NextResponse.json({
       success: true,
-      order_id: gig.order_id,
-      delivery_status: 'DELIVERED'
+      gig_id: gig.id,
+      order_id: gig.order_id
     })
   } catch (err: any) {
     return NextResponse.json(
