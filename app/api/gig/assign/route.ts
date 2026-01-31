@@ -10,6 +10,7 @@ const supabase = createClient(
 
 export async function GET(req: Request) {
   try {
+    // order_id here MUST be orders.id (UUID)
     const order_id = new URL(req.url).searchParams.get('order_id')
 
     if (!order_id) {
@@ -20,24 +21,32 @@ export async function GET(req: Request) {
       .toString(36)
       .slice(2, 6)}`
 
-    const { error } = await supabase
+    const { error: insertErr } = await supabase
       .from('gig_assignments')
       .insert({
         assignment_id,
-        order_id,
+        order_id, // UUID → orders.id
         status: 'ASSIGNED'
       })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (insertErr) {
+      return NextResponse.json({ error: insertErr.message }, { status: 500 })
     }
 
-    await supabase
+    // ✅ UPDATE orders USING UUID PRIMARY KEY
+    const { error: orderErr } = await supabase
       .from('orders')
       .update({ delivery_status: 'ASSIGNED' })
-      .eq('order_id', order_id)
+      .eq('id', order_id)
 
-    return NextResponse.json({ success: true, assignment_id })
+    if (orderErr) {
+      return NextResponse.json({ error: orderErr.message }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      assignment_id
+    })
   } catch (err: any) {
     return NextResponse.json(
       { error: err.message || 'Server error' },
