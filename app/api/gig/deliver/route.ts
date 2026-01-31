@@ -1,3 +1,13 @@
+export const runtime = 'nodejs'
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export async function GET(req: Request) {
   try {
     const assignment_id = new URL(req.url).searchParams.get('assignment_id')
@@ -12,7 +22,7 @@ export async function GET(req: Request) {
         status: 'DELIVERED',
         delivered_at: new Date().toISOString()
       })
-      .eq('assignment_id', assignment_id) // TEXT → TEXT
+      .eq('assignment_id', assignment_id)
       .select('order_id')
       .single()
 
@@ -29,7 +39,7 @@ export async function GET(req: Request) {
         delivery_status: 'DELIVERED',
         delivered_at: new Date().toISOString()
       })
-      .eq('id', gig.order_id) // ✅ UUID → UUID (NO CAST ERROR)
+      .eq('id', gig.order_id)
 
     return NextResponse.json({
       success: true,
