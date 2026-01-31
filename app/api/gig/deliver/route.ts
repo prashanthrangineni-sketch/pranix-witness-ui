@@ -1,74 +1,41 @@
-export const runtime = 'nodejs'
-
-import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const assignment_id = url.searchParams.get('assignment_id')
+  try {
+    const assignment_id = new URL(req.url).searchParams.get('assignment_id')
 
-  // 🔴 HARD DEBUG – this must show in browser
-  if (!assignment_id) {
+    if (!assignment_id) {
+      return NextResponse.json({ error: 'Missing assignment_id' }, { status: 400 })
+    }
+
+    const { data: gig, error } = await supabase
+      .from('gig_assignments')
+      .update({
+        status: 'DELIVERED',
+        delivered_at: new Date().toISOString()
+      })
+      .eq('assignment_id', assignment_id) // TEXT → TEXT
+      .select('order_id')
+      .single()
+
+    if (error || !gig) {
+      return NextResponse.json(
+        { step: 'NO_ROWS_UPDATED', assignment_id_received: assignment_id },
+        { status: 404 }
+      )
+    }
+
+    await supabase
+      .from('orders')
+      .update({
+        delivery_status: 'DELIVERED',
+        delivered_at: new Date().toISOString()
+      })
+      .eq('id', gig.order_id) // ✅ UUID → UUID (NO CAST ERROR)
+
     return NextResponse.json({
-      step: 'DEBUG',
-      error: 'assignment_id missing'
-    }, { status: 400 })
-  }
-
-  // 🔴 DEBUG: echo input
-  console.log('DELIVER HIT WITH:', assignment_id)
-
-  // 1️⃣ Update gig
-  const { data, error } = await supabase
-    .from('gig_assignments')
-    .update({
-      status: 'DELIVERED',
-      delivered_at: new Date().toISOString()
+      success: true,
+      delivery_status: 'DELIVERED'
     })
-    .eq('assignment_id', assignment_id)
-    .select('*')
-
-  // 🔴 DEBUG RESPONSE
-  if (error) {
-    return NextResponse.json({
-      step: 'GIG_UPDATE_ERROR',
-      error
-    }, { status: 500 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  if (!data || data.length === 0) {
-    return NextResponse.json({
-      step: 'NO_ROWS_UPDATED',
-      assignment_id_received: assignment_id
-    }, { status: 404 })
-  }
-
-  const gig = data[0]
-
-  // 2️⃣ Update order
-  const { error: orderErr } = await supabase
-    .from('orders')
-    .update({
-      delivery_status: 'DELIVERED',
-      delivered_at: new Date().toISOString()
-    })
-    .eq('id', gig.order_id)
-
-  if (orderErr) {
-    return NextResponse.json({
-      step: 'ORDER_UPDATE_ERROR',
-      error: orderErr
-    }, { status: 500 })
-  }
-
-  return NextResponse.json({
-    step: 'SUCCESS',
-    assignment_id: gig.assignment_id,
-    order_uuid: gig.order_id
-  })
 }
