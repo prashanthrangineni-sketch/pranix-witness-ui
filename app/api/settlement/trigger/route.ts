@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const { data: order, error } = await supabase
       .from('orders')
       .select('*')
-      .eq('order_id', order_id)
+      .eq('id', order_id)
       .single()
 
     if (error || !order) {
