@@ -10,47 +10,33 @@ const supabase = createClient(
 
 export async function GET(req: Request) {
   try {
-    // order_id here MUST be orders.id (UUID)
-    const order_id = new URL(req.url).searchParams.get('order_id')
+    const order_id = new URL(req.url).searchParams.get('order_id') // UUID
 
     if (!order_id) {
       return NextResponse.json({ error: 'Missing order_id' }, { status: 400 })
     }
 
-    const assignment_id = `GIG-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 6)}`
+    const assignment_id = `GIG-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
-    const { error: insertErr } = await supabase
+    const { error } = await supabase
       .from('gig_assignments')
       .insert({
         assignment_id,
-        order_id, // UUID → orders.id
+        order_id, // UUID
         status: 'ASSIGNED'
       })
 
-    if (insertErr) {
-      return NextResponse.json({ error: insertErr.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // ✅ UPDATE orders USING UUID PRIMARY KEY
-    const { error: orderErr } = await supabase
+    await supabase
       .from('orders')
       .update({ delivery_status: 'ASSIGNED' })
-      .eq('id', order_id)
+      .eq('id', order_id) // ✅ UUID → UUID
 
-    if (orderErr) {
-      return NextResponse.json({ error: orderErr.message }, { status: 500 })
-    }
-
-    return NextResponse.json({
-      success: true,
-      assignment_id
-    })
+    return NextResponse.json({ success: true, assignment_id })
   } catch (err: any) {
-    return NextResponse.json(
-      { error: err.message || 'Server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
