@@ -19,22 +19,36 @@ export async function GET(req: Request) {
 
     const { data, error } = await supabase
       .from('gig_assignments')
-      .update({ status: 'PICKED_UP', picked_at: new Date().toISOString() })
+      .update({
+        status: 'PICKED_UP',
+        picked_at: new Date().toISOString()
+      })
       .eq('assignment_id', assignment_id)
       .select('order_id')
       .single()
 
     if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Assignment not found' }, { status: 500 })
+      return NextResponse.json(
+        { error: error?.message || 'Assignment not found' },
+        { status: 404 }
+      )
     }
 
-    await supabase
+    // ✅ UPDATE orders USING UUID PRIMARY KEY
+    const { error: orderErr } = await supabase
       .from('orders')
       .update({ delivery_status: 'PICKED_UP' })
-      .eq('order_id', data.order_id)
+      .eq('id', data.order_id)
+
+    if (orderErr) {
+      return NextResponse.json({ error: orderErr.message }, { status: 500 })
+    }
 
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: err.message || 'Server error' },
+      { status: 500 }
+    )
   }
 }
