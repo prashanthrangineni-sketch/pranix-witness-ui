@@ -19,7 +19,7 @@ export async function GET(req: Request) {
       )
     }
 
-    // 1️⃣ Fetch gig FIRST (no update yet)
+    // 1️⃣ Fetch gig (read-only)
     const { data: gig, error: gigFetchErr } = await supabase
       .from('gig_assignments')
       .select('id, order_id, status')
@@ -41,11 +41,13 @@ export async function GET(req: Request) {
     }
 
     // 2️⃣ Update gig → DELIVERED
+    // ⚠️ IMPORTANT:
+    // - We DO NOT update orders here
+    // - DB trigger handles order closure
     const { error: gigUpdateErr } = await supabase
       .from('gig_assignments')
       .update({
-        status: 'DELIVERED',
-        delivered_at: new Date().toISOString()
+        status: 'DELIVERED'
       })
       .eq('id', gig.id)
 
@@ -56,49 +58,12 @@ export async function GET(req: Request) {
       )
     }
 
-    // 3️⃣ HARD VERIFY order exists
-    const { data: order, error: orderFetchErr } = await supabase
-      .from('orders')
-      .select('id, delivery_status')
-      .eq('id', gig.order_id)
-      .single()
-
-    if (orderFetchErr || !order) {
-      return NextResponse.json(
-        {
-          step: 'ORDER_NOT_FOUND',
-          order_id: gig.order_id
-        },
-        { status: 404 }
-      )
-    }
-
-    // 4️⃣ Update order → DELIVERED
-    const { data: updatedOrder, error: orderUpdateErr } = await supabase
-      .from('orders')
-      .update({
-        delivery_status: 'DELIVERED',
-        delivered_at: new Date().toISOString()
-      })
-      .eq('id', gig.order_id)
-      .select('id, delivery_status')
-      .single()
-
-    if (orderUpdateErr || !updatedOrder) {
-      return NextResponse.json(
-        {
-          step: 'ORDER_UPDATE_FAILED',
-          order_id: gig.order_id
-        },
-        { status: 500 }
-      )
-    }
-
+    // 3️⃣ SUCCESS — order auto-closes via DB trigger
     return NextResponse.json({
       success: true,
       assignment_id,
-      order_id: updatedOrder.id,
-      delivery_status: updatedOrder.delivery_status
+      order_id: gig.order_id,
+      note: 'Order closure handled by database trigger'
     })
   } catch (err: any) {
     return NextResponse.json(
