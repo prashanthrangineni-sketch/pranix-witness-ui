@@ -1,23 +1,37 @@
 import { NextResponse } from 'next/server'
-import { supabaseServer } from '@/lib/supabaseServer'
-import { getSessionId } from '@/lib/session'
+import { supabase } from '@/lib/supabaseServer'
+import { cookies } from 'next/headers'
+import { randomUUID } from 'crypto'
 
 export async function POST() {
-  const session_id = getSessionId()
+  // 1. Get or create session_id
+  const cookieStore = cookies()
+  let sessionId = cookieStore.get('cart2save_session')?.value
 
-  const { data: basket } = await supabaseServer
-    .from('baskets')
-    .select('*')
-    .eq('session_id', session_id)
-    .maybeSingle()
-
-  if (basket) {
-    return NextResponse.json({ basket })
+  if (!sessionId) {
+    sessionId = randomUUID()
+    cookieStore.set('cart2save_session', sessionId)
   }
 
-  const { data, error } = await supabaseServer
+  // 2. Check if basket already exists
+  const { data: existingBasket } = await supabase
     .from('baskets')
-    .insert({ session_id })
+    .select('*')
+    .eq('session_id', sessionId)
+    .eq('status', 'ACTIVE')
+    .single()
+
+  if (existingBasket) {
+    return NextResponse.json(existingBasket)
+  }
+
+  // 3. Create new basket
+  const { data: newBasket, error } = await supabase
+    .from('baskets')
+    .insert({
+      session_id: sessionId,
+      status: 'ACTIVE'
+    })
     .select()
     .single()
 
@@ -25,5 +39,5 @@ export async function POST() {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ basket: data })
+  return NextResponse.json(newBasket)
 }
