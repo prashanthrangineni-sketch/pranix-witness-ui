@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseServer'
 
 export async function POST() {
   try {
-    // Step 1: Get or create session
+    // 1. Get or create session
     const cookieStore = cookies()
     let sessionId = cookieStore.get('cart2save_session')?.value
 
@@ -14,7 +14,7 @@ export async function POST() {
       cookieStore.set('cart2save_session', sessionId)
     }
 
-    // Step 2: Check existing active basket
+    // 2. Check for existing active basket
     const { data: existingBasket } = await supabase
       .from('baskets')
       .select('*')
@@ -26,13 +26,17 @@ export async function POST() {
       return NextResponse.json(existingBasket)
     }
 
-    // Step 3: Create new basket (IMPORTANT: sector INCLUDED)
+    // 3. Compute expiry (24 hours from now)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+    // 4. Create new basket (ALL REQUIRED FIELDS)
     const { data, error } = await supabase
       .from('baskets')
       .insert({
         session_id: sessionId,
         sector: 'grocery',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        expires_at: expiresAt
       })
       .select()
       .single()
