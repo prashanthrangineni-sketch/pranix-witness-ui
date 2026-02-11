@@ -31,20 +31,21 @@ export async function POST(request: Request) {
   const body = await request.json()
   const { product_id, quantity, price_snapshot } = body
 
-  if (!product_id || !quantity || !price_snapshot) {
+  if (!product_id || !quantity || price_snapshot === undefined) {
     return NextResponse.json(
       { error: 'Missing product_id, quantity, or price_snapshot' },
       { status: 400 }
     )
   }
 
-  // 4. Insert basket item
+  // 4. Insert basket item (IMPORTANT FIX)
   const { data, error } = await supabase
     .from('basket_items')
     .insert({
       basket_id: basket.id,
       product_id,
       quantity,
+      price_at_add: price_snapshot, // ✅ REQUIRED COLUMN
       price_snapshot
     })
     .select()
