@@ -1,5 +1,8 @@
 'use client'
 
+// 👇 THIS LINE FIXES THE BUILD ERROR
+export const dynamic = 'force-dynamic'
+
 import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
@@ -15,10 +18,10 @@ export default function SetSessionPage() {
       return
     }
 
-    // 🔐 THIS IS THE MISSING PIECE
+    // Store session for basket page
     localStorage.setItem('cart2save_session', sid)
 
-    // Redirect to basket page
+    // Go to basket
     router.replace('/basket')
   }, [params, router])
 
@@ -28,3 +31,4 @@ export default function SetSessionPage() {
     </div>
   )
 }
+``
