@@ -22,20 +22,28 @@ export default function BasketPage() {
     async function loadBasket() {
       const sessionId = localStorage.getItem('cart2save_session')
 
+      // 🔒 SAFETY: stop infinite loading if no session
       if (!sessionId) {
         alert('No active session found')
+        setLoading(false)
         return
       }
 
-      const res = await fetch('/api/basket/view', {
-        headers: {
-          'X-Session-ID': sessionId
-        }
-      })
+      try {
+        const res = await fetch('/api/basket/view', {
+          headers: {
+            'X-Session-ID': sessionId
+          }
+        })
 
-      const data = await res.json()
-      setMerchants(data.merchants || [])
-      setLoading(false)
+        const data = await res.json()
+        setMerchants(data.merchants || [])
+      } catch (err) {
+        alert('Failed to load basket')
+      } finally {
+        // 🔒 ALWAYS stop loading
+        setLoading(false)
+      }
     }
 
     loadBasket()
