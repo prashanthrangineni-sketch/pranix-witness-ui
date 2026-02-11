@@ -6,14 +6,10 @@ type BasketItem = {
   product_id: string
   quantity: number
   price_at_add: number
-  product_name?: string
-  product_image?: string
 }
 
 type MerchantGroup = {
   merchant_id: string
-  merchant_name?: string
-  sector?: string
   items: BasketItem[]
   subtotal: number
 }
@@ -21,16 +17,30 @@ type MerchantGroup = {
 export default function BasketPage() {
   const [merchants, setMerchants] = useState<MerchantGroup[]>([])
   const [loading, setLoading] = useState(true)
+  const [sessionReady, setSessionReady] = useState(false)
 
+  // Step 1: Wait until session is actually available
   useEffect(() => {
+    const checkSession = () => {
+      const sid = localStorage.getItem('cart2save_session')
+      if (sid) {
+        setSessionReady(true)
+      }
+    }
+
+    checkSession()
+    const interval = setInterval(checkSession, 200)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  // Step 2: Load basket ONLY after session is ready
+  useEffect(() => {
+    if (!sessionReady) return
+
     async function loadBasket() {
       const sessionId = localStorage.getItem('cart2save_session')
-
-      if (!sessionId) {
-        alert('No active session found')
-        setLoading(false)
-        return
-      }
+      if (!sessionId) return
 
       const res = await fetch('/api/basket/view', {
         headers: {
@@ -44,9 +54,9 @@ export default function BasketPage() {
     }
 
     loadBasket()
-  }, [])
+  }, [sessionReady])
 
-  if (loading) {
+  if (!sessionReady || loading) {
     return <div style={{ padding: 20 }}>Loading basket…</div>
   }
 
@@ -56,85 +66,29 @@ export default function BasketPage() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1 style={{ marginBottom: 20 }}>My Basket</h1>
+      <h1>My Basket</h1>
 
       {merchants.map((merchant) => (
         <div
           key={merchant.merchant_id}
           style={{
-            border: '1px solid #ddd',
-            borderRadius: 10,
+            border: '1px solid #ccc',
             padding: 16,
-            marginBottom: 20
+            marginBottom: 16,
+            borderRadius: 8
           }}
         >
-          {/* Merchant Header */}
-          <div style={{ marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>
-              {merchant.merchant_name || merchant.merchant_id}
-            </h3>
-            <small style={{ color: '#666' }}>
-              {merchant.sector || 'General'}
-            </small>
-          </div>
+          <h3>Merchant: {merchant.merchant_id}</h3>
 
-          {/* Items */}
-          {merchant.items.map((item, index) => (
-            <div
-              key={index}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: 12,
-                paddingBottom: 12,
-                borderBottom: '1px solid #eee'
-              }}
-            >
-              {/* Image Placeholder */}
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  background: '#f2f2f2',
-                  borderRadius: 8,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: 12,
-                  fontSize: 12,
-                  color: '#999'
-                }}
-              >
-                IMG
-              </div>
+          <ul>
+            {merchant.items.map((item, index) => (
+              <li key={index}>
+                Product: {item.product_id} — Qty: {item.quantity} — ₹{item.price_at_add}
+              </li>
+            ))}
+          </ul>
 
-              {/* Product Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 500 }}>
-                  {item.product_name || item.product_id}
-                </div>
-                <div style={{ fontSize: 14, color: '#666' }}>
-                  Qty: {item.quantity}
-                </div>
-              </div>
-
-              {/* Price */}
-              <div style={{ fontWeight: 600 }}>
-                ₹{item.price_at_add}
-              </div>
-            </div>
-          ))}
-
-          {/* Subtotal */}
-          <div
-            style={{
-              textAlign: 'right',
-              fontWeight: 700,
-              marginTop: 8
-            }}
-          >
-            Total: ₹{merchant.subtotal}
-          </div>
+          <strong>Total: ₹{merchant.subtotal}</strong>
         </div>
       ))}
     </div>
