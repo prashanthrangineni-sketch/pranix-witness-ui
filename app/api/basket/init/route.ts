@@ -25,18 +25,22 @@ export async function POST() {
     return NextResponse.json(existingBasket)
   }
 
-  // 3. Create new basket
+  // 3. Create new basket (IMPORTANT: sector is REQUIRED)
   const { data: newBasket, error } = await supabase
     .from('baskets')
     .insert({
       session_id: sessionId,
+      sector: 'grocery',   // 👈 REQUIRED, TEMP DEFAULT
       status: 'ACTIVE'
     })
     .select()
     .single()
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: errorRemember: error.message },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json(newBasket)
