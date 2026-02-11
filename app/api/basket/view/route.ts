@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 
 export async function GET(request: Request) {
-  // 1. Read session from header (preview-safe)
+  // 1. Read session from header
   const sessionId = request.headers.get('x-session-id')
 
   if (!sessionId) {
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     )
   }
 
-  // 3. Load basket items
+  // 3. Load basket items + products
   const { data: items, error: itemsError } = await supabase
     .from('basket_items')
     .select(`
@@ -50,11 +50,15 @@ export async function GET(request: Request) {
     )
   }
 
-  // 4. Group items by merchant
+  // 4. Group by merchant
   const grouped: Record<string, any> = {}
 
   for (const item of items || []) {
-    const merchantId = item.products.merchant_id
+    const product = item.products?.[0]
+
+    if (!product) continue
+
+    const merchantId = product.merchant_id
 
     if (!grouped[merchantId]) {
       grouped[merchantId] = {
@@ -65,8 +69,8 @@ export async function GET(request: Request) {
     }
 
     grouped[merchantId].items.push({
-      product_id: item.products.id,
-      product_name: item.products.product_name,
+      product_id: product.id,
+      product_name: product.product_name,
       quantity: item.quantity,
       price_at_add: item.price_at_add
     })
@@ -75,7 +79,7 @@ export async function GET(request: Request) {
       Number(item.price_at_add) * Number(item.quantity)
   }
 
-  // 5. Return structured response
+  // 5. Return response
   return NextResponse.json({
     basket_id: basket.id,
     session_id: basket.session_id,
