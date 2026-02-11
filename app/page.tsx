@@ -1,92 +1,81 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 
-const SECTORS = [
-  { id: 'food', name: '🍔 Food' },
-  { id: 'grocery', name: '🛒 Grocery' },
-  { id: 'mobility', name: '🚗 Mobility' },
-  { id: 'electronics', name: '📱 Electronics' },
-  { id: 'pharmacy', name: '💊 Pharmacy' },
-  { id: 'apparel', name: '👕 Apparel' },
-  { id: 'home_services', name: '🏠 Home Services' }
-]
+type Product = {
+  id: string
+  product_name: string
+  price: number
+  merchant_id: string
+}
 
-export default function HomePage() {
-  const [query, setQuery] = useState('')
-  const [sector, setSector] = useState('grocery')
-  const [loading, setLoading] = useState(false)
-  const router = useRouter()
+export default function DiscoverPage() {
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleSearch = async () => {
-    if (!query) return alert('Enter product name')
-
-    setLoading(true)
-
-    try {
-      const res = await fetch('/api/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, sector })
-      })
-
+  useEffect(() => {
+    async function loadProducts() {
+      const res = await fetch('/api/products')
       const data = await res.json()
-      console.log('SEARCH API RESPONSE →', data)
-
-      if (!data?.snapshot?.snapshot_id) {
-        alert('Snapshot creation failed — backend error')
-        return
-      }
-
-      router.push(`/results/${data.snapshot.snapshot_id}`)
-    } catch (err) {
-      console.error(err)
-      alert('API unreachable')
-    } finally {
+      setProducts(data || [])
       setLoading(false)
     }
+
+    loadProducts()
+  }, [])
+
+  async function addToBasket(product: Product) {
+    const sessionId = localStorage.getItem('cart2save_session')
+    if (!sessionId) {
+      alert('Session not ready')
+      return
+    }
+
+    await fetch('/api/basket/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-ID': sessionId
+      },
+      body: JSON.stringify({
+        product_uuid: product.id,
+        quantity: 1
+      })
+    })
+
+    alert('Added to basket')
+  }
+
+  if (loading) {
+    return <div style={{ padding: 20 }}>Loading products…</div>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl p-6 max-w-lg w-full shadow-xl">
-        <h1 className="text-3xl font-bold text-center mb-2">Cart2Save</h1>
-        <p className="text-center text-gray-500 mb-4">
-          Best price. Every time.
-        </p>
+    <div style={{ padding: 20 }}>
+      <h1>Cart2Save</h1>
+      <p>Neutral discovery. Add items to basket.</p>
 
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {SECTORS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setSector(s.id)}
-              className={`p-2 rounded-lg text-sm font-medium border transition ${
-                sector === s.id
-                  ? 'bg-green-600 text-white border-green-600'
-                  : 'bg-gray-100 text-gray-700'
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
+      {products.map((product) => (
+        <div
+          key={product.id}
+          style={{
+            border: '1px solid #ddd',
+            padding: 16,
+            marginBottom: 12,
+            borderRadius: 8
+          }}
+        >
+          <strong>{product.product_name}</strong>
+          <div>₹{product.price}</div>
 
-        <div className="flex gap-2">
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search product..."
-            className="flex-1 p-3 border rounded-xl"
-          />
           <button
-            onClick={handleSearch}
-            className="bg-indigo-600 text-white px-4 rounded-xl min-w-[90px]"
+            style={{ marginTop: 8 }}
+            onClick={() => addToBasket(product)}
           >
-            {loading ? '...' : 'Search'}
+            Add to Basket
           </button>
         </div>
-      </div>
+      ))}
     </div>
   )
 }
