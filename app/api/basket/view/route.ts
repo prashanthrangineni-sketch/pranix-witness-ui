@@ -27,20 +27,10 @@ export async function GET(request: Request) {
     )
   }
 
-  // 3. Load basket items + products
+  // 3. Fetch basket items
   const { data: items, error: itemsError } = await supabase
     .from('basket_items')
-    .select(`
-      id,
-      quantity,
-      price_at_add,
-      products (
-        id,
-        product_name,
-        price,
-        merchant_id
-      )
-    `)
+    .select('*')
     .eq('basket_id', basket.id)
 
   if (itemsError) {
@@ -50,15 +40,11 @@ export async function GET(request: Request) {
     )
   }
 
-  // 4. Group by merchant
+  // 4. Group items by merchant_id
   const grouped: Record<string, any> = {}
 
   for (const item of items || []) {
-    const product = item.products?.[0]
-
-    if (!product) continue
-
-    const merchantId = product.merchant_id
+    const merchantId = item.merchant_id
 
     if (!grouped[merchantId]) {
       grouped[merchantId] = {
@@ -69,8 +55,7 @@ export async function GET(request: Request) {
     }
 
     grouped[merchantId].items.push({
-      product_id: product.id,
-      product_name: product.product_name,
+      product_id: item.product_id,
       quantity: item.quantity,
       price_at_add: item.price_at_add
     })
@@ -79,10 +64,10 @@ export async function GET(request: Request) {
       Number(item.price_at_add) * Number(item.quantity)
   }
 
-  // 5. Return response
+  // 5. Final response
   return NextResponse.json({
     basket_id: basket.id,
-    session_id: basket.session_id,
+    session_id: sessionId,
     merchants: Object.values(grouped)
   })
 }
