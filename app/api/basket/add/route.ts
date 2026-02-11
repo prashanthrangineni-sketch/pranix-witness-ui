@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 
 export async function POST(request: Request) {
-  // 1. Read session from header (preview-safe)
+  // 1. Read session ID (preview-safe)
   const sessionId = request.headers.get('x-session-id')
 
   if (!sessionId) {
@@ -29,24 +29,39 @@ export async function POST(request: Request) {
 
   // 3. Read request body
   const body = await request.json()
-  const { product_id, quantity, price_snapshot } = body
+  const { product_uuid, quantity, snapshot_id } = body
 
-  if (!product_id || !quantity || price_snapshot === undefined) {
+  if (!product_uuid || !quantity) {
     return NextResponse.json(
-      { error: 'Missing product_id, quantity, or price_snapshot' },
+      { error: 'Missing product_uuid or quantity' },
       { status: 400 }
     )
   }
 
-  // 4. Insert basket item (IMPORTANT FIX)
+  // 4. Fetch product from PRODUCTS table
+  const { data: product, error: productError } = await supabase
+    .from('products')
+    .select('id, merchant_id, price')
+    .eq('id', product_uuid)
+    .single()
+
+  if (!product || productError) {
+    return NextResponse.json(
+      { error: 'Invalid product_uuid' },
+      { status: 400 }
+    )
+  }
+
+  // 5. Insert into basket_items
   const { data, error } = await supabase
     .from('basket_items')
     .insert({
       basket_id: basket.id,
-      product_id,
+      product_id: product.id,          // UUID FK ✅
+      merchant_id: product.merchant_id,
       quantity,
-      price_at_add: price_snapshot, // ✅ REQUIRED COLUMN
-      price_snapshot
+      price_at_add: product.price,
+      snapshot_id: snapshot_id ?? null
     })
     .select()
     .single()
