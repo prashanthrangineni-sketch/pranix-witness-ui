@@ -21,16 +21,10 @@ export default function BasketPage() {
   useEffect(() => {
     async function loadBasket() {
       const sessionId = localStorage.getItem('cart2save_session')
-
-      if (!sessionId) {
-        setLoading(false)
-        return
-      }
+      if (!sessionId) return
 
       const res = await fetch('/api/basket/view', {
-        headers: {
-          'X-Session-ID': sessionId
-        }
+        headers: { 'X-Session-ID': sessionId }
       })
 
       const data = await res.json()
@@ -41,106 +35,93 @@ export default function BasketPage() {
     loadBasket()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading your basket…
-      </div>
-    )
-  }
-
-  if (merchants.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <h1 className="text-2xl font-semibold mb-2">Your basket is empty</h1>
-        <p className="text-gray-500">
-          Add items from search to see them here.
-        </p>
-      </div>
-    )
-  }
+  if (loading) return <div style={{ padding: 24 }}>Loading basket…</div>
+  if (merchants.length === 0)
+    return <div style={{ padding: 24 }}>Your basket is empty</div>
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="sticky top-0 bg-white border-b px-4 py-4 z-10">
-        <h1 className="text-xl font-semibold">My Cart</h1>
-      </div>
+    <div style={{ padding: 16, paddingBottom: 120, maxWidth: 900, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 16 }}>
+        My Basket
+      </h1>
 
-      {/* Basket Content */}
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {merchants.map((merchant) => (
+      {merchants.map(merchant => (
+        <div
+          key={merchant.merchant_id}
+          style={{
+            border: '1px solid #eee',
+            borderRadius: 16,
+            padding: 16,
+            marginBottom: 20,
+            background: '#fff'
+          }}
+        >
+          <h3 style={{ fontWeight: 700, marginBottom: 12 }}>
+            Merchant
+          </h3>
+
+          {merchant.items.map((item, i) => (
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                padding: '10px 0',
+                borderBottom: '1px dashed #ddd'
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 600 }}>Product</div>
+                <div style={{ fontSize: 14 }}>Qty: {item.quantity}</div>
+              </div>
+              <div style={{ fontWeight: 700 }}>
+                ₹{item.price_at_add}
+              </div>
+            </div>
+          ))}
+
           <div
-            key={merchant.merchant_id}
-            className="bg-white rounded-xl shadow-sm border"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: 14,
+              fontWeight: 800
+            }}
           >
-            {/* Merchant Header */}
-            <div className="px-4 py-3 border-b bg-gray-50 rounded-t-xl">
-              <p className="text-sm font-medium text-gray-700">
-                Merchant
-              </p>
-              <p className="text-xs text-gray-400 break-all">
-                {merchant.merchant_id}
-              </p>
-            </div>
-
-            {/* Items */}
-            <div className="divide-y">
-              {merchant.items.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between px-4 py-4"
-                >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">
-                      Product ID
-                    </p>
-                    <p className="text-xs text-gray-400 break-all">
-                      {item.product_id}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Qty: {item.quantity}
-                    </p>
-                  </div>
-
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">
-                      ₹{item.price_at_add}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Subtotal */}
-            <div className="px-4 py-3 border-t bg-gray-50 flex justify-between items-center">
-              <span className="text-sm font-medium">Subtotal</span>
-              <span className="text-lg font-semibold">
-                ₹{merchant.subtotal}
-              </span>
-            </div>
+            <span>Subtotal</span>
+            <span>₹{merchant.subtotal}</span>
           </div>
-        ))}
-      </div>
-
-      {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4">
-        <div className="max-w-3xl mx-auto flex justify-between items-center">
-          <div>
-            <p className="text-xs text-gray-500">Total payable</p>
-            <p className="text-lg font-semibold">
-              ₹
-              {merchants.reduce(
-                (sum, m) => sum + m.subtotal,
-                0
-              )}
-            </p>
-          </div>
-
-          <button className="bg-black text-white px-6 py-3 rounded-lg text-sm font-medium">
-            Proceed
-          </button>
         </div>
+      ))}
+
+      {/* Sticky checkout bar */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: '#111',
+          color: '#fff',
+          padding: '16px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}
+      >
+        <strong>Proceed to Merchant</strong>
+        <button
+          style={{
+            background: '#fff',
+            color: '#111',
+            padding: '10px 18px',
+            borderRadius: 10,
+            fontWeight: 800,
+            border: 'none'
+          }}
+        >
+          Continue →
+        </button>
       </div>
     </div>
   )
