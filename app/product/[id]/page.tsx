@@ -80,12 +80,12 @@ export default function ProductDetailPage() {
       : null
 
   return (
-    <div style={{ paddingBottom: 90 }}>
+    <div style={{ paddingBottom: 160 }}>
       {/* Product Image */}
       <div
         style={{
           width: '100%',
-          height: 280,
+          height: 300,
           background: '#f5f5f5',
           display: 'flex',
           alignItems: 'center',
@@ -105,13 +105,13 @@ export default function ProductDetailPage() {
 
       {/* Product Info */}
       <div style={{ padding: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 600, marginBottom: 8 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 8 }}>
           {product.product_name}
         </h1>
 
         {/* Price */}
         <div style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 22, fontWeight: 700 }}>
+          <span style={{ fontSize: 22, fontWeight: 800 }}>
             ₹{product.price}
           </span>
           {product.original_price && (
@@ -130,7 +130,7 @@ export default function ProductDetailPage() {
               style={{
                 marginLeft: 10,
                 color: '#1a7f37',
-                fontWeight: 600,
+                fontWeight: 700,
               }}
             >
               {discount}% OFF
@@ -143,7 +143,7 @@ export default function ProductDetailPage() {
           style={{
             fontSize: 14,
             color: '#555',
-            marginBottom: 12,
+            marginBottom: 14,
           }}
         >
           Sold by merchant • Neutral listing
@@ -160,9 +160,9 @@ export default function ProductDetailPage() {
         <div
           style={{
             marginTop: 20,
-            padding: 12,
+            padding: 14,
             background: '#f9fafb',
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 13,
             color: '#555',
           }}
@@ -171,11 +171,11 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Sticky Bottom Bar */}
+      {/* Sticky Action Bar — FIXED */}
       <div
         style={{
           position: 'fixed',
-          bottom: 0,
+          bottom: 56, // 👈 keeps ABOVE Search/Basket/Account bar
           left: 0,
           right: 0,
           background: '#fff',
@@ -183,6 +183,7 @@ export default function ProductDetailPage() {
           padding: 12,
           display: 'flex',
           gap: 12,
+          zIndex: 50,
         }}
       >
         <button
@@ -192,9 +193,9 @@ export default function ProductDetailPage() {
             padding: 14,
             background: '#000',
             color: '#fff',
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 16,
-            fontWeight: 600,
+            fontWeight: 700,
           }}
         >
           Add to Basket
@@ -206,9 +207,9 @@ export default function ProductDetailPage() {
             flex: 1,
             padding: 14,
             background: '#f1f1f1',
-            borderRadius: 8,
+            borderRadius: 10,
             fontSize: 16,
-            fontWeight: 600,
+            fontWeight: 700,
           }}
         >
           View Basket
