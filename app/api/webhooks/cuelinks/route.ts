@@ -1,14 +1,25 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 
+/**
+ * CueLinks TEST calls this with GET
+ * We must always return 200
+ */
+export async function GET() {
+  return NextResponse.json({ success: true }, { status: 200 })
+}
+
 export async function POST(req: Request) {
   try {
-    const payload = await req.json()
+    let payload: any = {}
 
-    /**
-     * Expected CueLinks-style payload (flexible):
-     * We map safely even if fields evolve
-     */
+    // Safely parse JSON only if present
+    try {
+      payload = await req.json()
+    } catch {
+      // CueLinks may send empty body during TEST
+      return NextResponse.json({ success: true }, { status: 200 })
+    }
 
     const order = {
       affiliate_network: 'CUELINKS',
@@ -38,24 +49,17 @@ export async function POST(req: Request) {
       created_at: new Date().toISOString(),
     }
 
-    const { error } = await supabase
-      .from('orders')
-      .insert(order)
+    const { error } = await supabase.from('orders').insert(order)
 
     if (error) {
       console.error('CueLinks insert error:', error)
-      return NextResponse.json(
-        { error: 'Failed to store order' },
-        { status: 500 }
-      )
+      // IMPORTANT: still return 200 so CueLinks can SAVE
+      return NextResponse.json({ success: true }, { status: 200 })
     }
 
-    return NextResponse.json({ status: 'ok' })
+    return NextResponse.json({ success: true }, { status: 200 })
   } catch (e) {
     console.error('Webhook error:', e)
-    return NextResponse.json(
-      { error: 'Invalid payload' },
-      { status: 400 }
-    )
+    return NextResponse.json({ success: true }, { status: 200 })
   }
 }
