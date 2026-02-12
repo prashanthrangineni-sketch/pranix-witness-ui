@@ -29,34 +29,46 @@ export default function AccountPage() {
         <div style={arrowStyle}>›</div>
       </div>
 
-      {/* Savings */}
-      <div style={cardStyle}>
+      {/* Savings — FIXED */}
+      <div
+        onClick={() => router.push('/account/savings')}
+        style={cardStyle}
+      >
         <div>
           <div style={titleStyle}>💰 Savings & Price Drops</div>
           <div style={subStyle}>
             View how much you saved using Cart2Save
           </div>
         </div>
+        <div style={arrowStyle}>›</div>
       </div>
 
       {/* Trust */}
-      <div style={cardStyle}>
+      <div
+        onClick={() => router.push('/account/trust')}
+        style={cardStyle}
+      >
         <div>
           <div style={titleStyle}>🛡️ Trust & Neutrality</div>
           <div style={subStyle}>
             How Cart2Save works — no paid rankings
           </div>
         </div>
+        <div style={arrowStyle}>›</div>
       </div>
 
       {/* Preferences */}
-      <div style={cardStyle}>
+      <div
+        onClick={() => router.push('/account/preferences')}
+        style={cardStyle}
+      >
         <div>
           <div style={titleStyle}>⚙️ Preferences & Legal</div>
           <div style={subStyle}>
             Policies, privacy & platform rules
           </div>
         </div>
+        <div style={arrowStyle}>›</div>
       </div>
     </div>
   )
