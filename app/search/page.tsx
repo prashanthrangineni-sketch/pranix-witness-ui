@@ -9,20 +9,29 @@ type Product = {
   merchant_id: string
 }
 
+const SECTORS = [
+  'Grocery',
+  'Electronics',
+  'Fashion',
+  'Food',
+  'Travel',
+  'Services',
+  'Insurance'
+]
+
 export default function SearchPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [activeSector, setActiveSector] = useState<string>('Grocery')
 
   useEffect(() => {
     async function initAndLoad() {
       // 1. Initialize basket session
-      const initRes = await fetch('/api/basket/init', {
-        method: 'POST'
-      })
+      const initRes = await fetch('/api/basket/init', { method: 'POST' })
       const initData = await initRes.json()
       localStorage.setItem('cart2save_session', initData.session_id)
 
-      // 2. Load products
+      // 2. Load products (demo feed)
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id`,
         {
@@ -43,7 +52,7 @@ export default function SearchPage() {
   async function addToBasket(product: Product) {
     const sessionId = localStorage.getItem('cart2save_session')
     if (!sessionId) {
-      alert('Session not found')
+      alert('No active session')
       return
     }
 
@@ -63,98 +72,130 @@ export default function SearchPage() {
   }
 
   if (loading) {
-    return (
-      <div style={{ padding: 24, fontSize: 16 }}>
-        Loading products…
-      </div>
-    )
+    return <div style={{ padding: 24 }}>Loading products…</div>
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 720, margin: '0 auto' }}>
-      <h1
+    <div style={{ paddingBottom: 120 }}>
+      {/* ASK BAR */}
+      <div
         style={{
-          fontSize: 22,
-          fontWeight: 600,
-          marginBottom: 16
+          padding: 16,
+          position: 'sticky',
+          top: 0,
+          background: '#fff',
+          zIndex: 10,
+          borderBottom: '1px solid #eee'
         }}
       >
-        Search Results
-      </h1>
-
-      {products.map((product) => (
-        <div
-          key={product.id}
+        <input
+          placeholder="Search products, services, or ask anything…"
           style={{
-            display: 'flex',
-            gap: 16,
-            padding: 16,
-            marginBottom: 14,
-            borderRadius: 12,
-            border: '1px solid #e5e7eb',
-            background: '#ffffff',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+            width: '100%',
+            padding: '14px 16px',
+            borderRadius: 10,
+            border: '1px solid #ddd',
+            fontSize: 16
           }}
-        >
-          {/* Image placeholder */}
-          <div
+        />
+      </div>
+
+      {/* SECTOR STRIP */}
+      <div
+        style={{
+          display: 'flex',
+          overflowX: 'auto',
+          gap: 12,
+          padding: '12px 16px'
+        }}
+      >
+        {SECTORS.map((sector) => (
+          <button
+            key={sector}
+            onClick={() => setActiveSector(sector)}
             style={{
-              width: 80,
-              height: 80,
-              borderRadius: 10,
-              background:
-                'linear-gradient(135deg, #f3f4f6, #e5e7eb)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 12,
-              color: '#6b7280'
+              padding: '8px 14px',
+              borderRadius: 20,
+              border: '1px solid #ddd',
+              background: sector === activeSector ? '#000' : '#fff',
+              color: sector === activeSector ? '#fff' : '#000',
+              fontSize: 14,
+              whiteSpace: 'nowrap'
             }}
           >
-            Image
-          </div>
+            {sector}
+          </button>
+        ))}
+      </div>
 
-          {/* Product details */}
-          <div style={{ flex: 1 }}>
-            <div
-              style={{
-                fontSize: 16,
-                fontWeight: 500,
-                marginBottom: 6,
-                lineHeight: 1.3
-              }}
-            >
+      {/* PRODUCT LIST */}
+      <div style={{ padding: '0 16px' }}>
+        {products.map((product) => (
+          <div
+            key={product.id}
+            style={{
+              border: '1px solid #e5e5e5',
+              borderRadius: 12,
+              padding: 16,
+              marginBottom: 14,
+              background: '#fff'
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 600 }}>
               {product.product_name}
             </div>
 
-            <div
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                marginBottom: 10
-              }}
-            >
+            <div style={{ marginTop: 6, fontSize: 15 }}>
               ₹{product.price}
             </div>
 
             <button
               onClick={() => addToBasket(product)}
               style={{
-                padding: '8px 14px',
-                background: '#111827',
-                color: '#ffffff',
+                marginTop: 12,
+                width: '100%',
+                padding: '10px 0',
                 borderRadius: 8,
-                fontSize: 14,
-                fontWeight: 500,
                 border: 'none',
-                cursor: 'pointer'
+                background: '#000',
+                color: '#fff',
+                fontSize: 15
               }}
             >
               Add to Basket
             </button>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+
+      {/* STICKY BOTTOM BAR */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: '#fff',
+          borderTop: '1px solid #eee',
+          padding: 14
+        }}
+      >
+        <a
+          href="/basket"
+          style={{
+            display: 'block',
+            textAlign: 'center',
+            background: '#000',
+            color: '#fff',
+            padding: '12px 0',
+            borderRadius: 10,
+            textDecoration: 'none',
+            fontSize: 16
+          }}
+        >
+          View Basket
+        </a>
+      </div>
     </div>
   )
 }
