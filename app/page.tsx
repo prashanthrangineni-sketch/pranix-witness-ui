@@ -2,33 +2,43 @@ import SectorGrid from './components/SectorGrid'
 
 export default function HomePage() {
   return (
-    <main
-      style={{
-        maxWidth: '720px',
-        margin: '0 auto',
-        padding: '24px 16px',
-      }}
-    >
+    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
+      
       {/* HERO */}
-      <section style={{ marginBottom: '28px' }}>
+      <section style={{ marginBottom: '36px' }}>
         <h1
           style={{
-            fontSize: '28px',
-            lineHeight: '1.25',
+            fontSize: '32px',
             fontWeight: 800,
+            lineHeight: '1.2',
             marginBottom: '12px',
           }}
         >
           Best price. Every time.
         </h1>
 
-        <p style={{ fontSize: '16px', color: '#4b5563' }}>
-          Compare prices across food, grocery, pharmacy, electronics, fashion,
-          mobility, and home services — without ads, rankings, or dark patterns.
+        <p style={{ fontSize: '17px', color: '#4b5563', marginBottom: '18px' }}>
+          Compare real prices across food, grocery, pharmacy, electronics,
+          fashion, mobility, and home services — transparently.
         </p>
+
+        <a
+          href="/search"
+          style={{
+            display: 'inline-block',
+            padding: '14px 18px',
+            borderRadius: '12px',
+            backgroundColor: '#111827',
+            color: '#ffffff',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          Start comparing prices
+        </a>
       </section>
 
-      {/* SECTORS (AMAZON / SWIGGY STYLE ENTRY POINT) */}
+      {/* SECTORS */}
       <SectorGrid />
 
       {/* TRUST STRIP */}
@@ -36,45 +46,25 @@ export default function HomePage() {
         style={{
           backgroundColor: '#ffffff',
           border: '1px solid #e5e7eb',
-          borderRadius: '12px',
-          padding: '16px',
-          margin: '28px 0',
+          borderRadius: '14px',
+          padding: '18px',
+          marginBottom: '28px',
         }}
       >
-        <ul
+        <div
           style={{
-            paddingLeft: '18px',
-            margin: 0,
-            color: '#374151',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '12px',
             fontSize: '14px',
+            fontWeight: 500,
           }}
         >
-          <li>No sponsored results</li>
-          <li>No fake discounts</li>
-          <li>No seller manipulation</li>
-          <li>You choose where to buy</li>
-        </ul>
-      </section>
-
-      {/* CTA */}
-      <section>
-        <a
-          href="/search"
-          style={{
-            display: 'inline-block',
-            width: '100%',
-            textAlign: 'center',
-            padding: '14px',
-            borderRadius: '10px',
-            backgroundColor: '#111827',
-            color: '#ffffff',
-            fontWeight: 600,
-            textDecoration: 'none',
-            fontSize: '16px',
-          }}
-        >
-          Start comparing prices
-        </a>
+          <div>✅ No sponsored rankings</div>
+          <div>✅ No fake discounts</div>
+          <div>✅ No seller manipulation</div>
+          <div>✅ You choose where to buy</div>
+        </div>
       </section>
     </main>
   )
