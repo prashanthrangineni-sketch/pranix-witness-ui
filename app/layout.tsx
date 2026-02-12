@@ -42,12 +42,23 @@ export default function RootLayout({
             </div>
 
             <div style={{ marginBottom: '6px' }}>
-              Neutral price discovery platform. We don’t sell products or rank
-              sellers.
+              Neutral price discovery platform. We don’t sell products or rank sellers.
             </div>
 
             <div style={{ marginBottom: '6px' }}>
-              Contact: <a href="mailto:support@cart2save.com">support@cart2save.com</a>
+              Contact:{' '}
+              <a href="mailto:support@cart2save.com">
+                support@cart2save.com
+              </a>
+            </div>
+
+            <div style={{ marginBottom: '6px' }}>
+              <a
+                href="/merchant/signup"
+                style={{ textDecoration: 'underline' }}
+              >
+                Are you a merchant? Partner with Cart2Save
+              </a>
             </div>
 
             <div>
