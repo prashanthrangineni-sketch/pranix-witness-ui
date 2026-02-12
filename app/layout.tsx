@@ -1,18 +1,32 @@
-import "./globals.css";
+import type { Metadata } from 'next'
+import BottomNav from './components/BottomNav'
 
-export const metadata = {
-  title: "Pranix Witness",
-  description: "Pranix AI Labs Sovereign Witness System"
-};
+export const metadata: Metadata = {
+  title: 'Cart2Save',
+  description: 'Neutral price discovery and basket platform'
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body
+        style={{
+          margin: 0,
+          paddingBottom: '72px', // space for bottom nav
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif',
+          backgroundColor: '#fafafa',
+        }}
+      >
+        {children}
+
+        {/* Persistent Bottom Navigation */}
+        <BottomNav />
+      </body>
     </html>
-  );
+  )
 }
