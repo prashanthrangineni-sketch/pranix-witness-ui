@@ -1,8 +1,16 @@
+import SectorGrid from './components/SectorGrid'
+
 export default function HomePage() {
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
+    <main
+      style={{
+        maxWidth: '720px',
+        margin: '0 auto',
+        padding: '24px 16px',
+      }}
+    >
       {/* HERO */}
-      <section style={{ marginBottom: '32px' }}>
+      <section style={{ marginBottom: '28px' }}>
         <h1
           style={{
             fontSize: '28px',
@@ -20,6 +28,9 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* SECTORS (AMAZON / SWIGGY STYLE ENTRY POINT) */}
+      <SectorGrid />
+
       {/* TRUST STRIP */}
       <section
         style={{
@@ -27,10 +38,17 @@ export default function HomePage() {
           border: '1px solid #e5e7eb',
           borderRadius: '12px',
           padding: '16px',
-          marginBottom: '24px',
+          margin: '28px 0',
         }}
       >
-        <ul style={{ paddingLeft: '18px', margin: 0 }}>
+        <ul
+          style={{
+            paddingLeft: '18px',
+            margin: 0,
+            color: '#374151',
+            fontSize: '14px',
+          }}
+        >
           <li>No sponsored results</li>
           <li>No fake discounts</li>
           <li>No seller manipulation</li>
@@ -52,6 +70,7 @@ export default function HomePage() {
             color: '#ffffff',
             fontWeight: 600,
             textDecoration: 'none',
+            fontSize: '16px',
           }}
         >
           Start comparing prices
