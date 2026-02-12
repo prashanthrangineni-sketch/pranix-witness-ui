@@ -7,6 +7,7 @@ type Product = {
   product_name: string
   price: number
   merchant_id: string
+  sector?: string
 }
 
 export default function SearchPage() {
@@ -15,18 +16,14 @@ export default function SearchPage() {
 
   useEffect(() => {
     async function initAndLoad() {
-      // 1. Initialize basket session
-      const initRes = await fetch('/api/basket/init', {
-        method: 'POST'
-      })
+      // Init basket session
+      const initRes = await fetch('/api/basket/init', { method: 'POST' })
       const initData = await initRes.json()
-
-      // Save session for later pages
       localStorage.setItem('cart2save_session', initData.session_id)
 
-      // 2. Load demo products from Supabase (public table)
+      // Load products
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id,sector`,
         {
           headers: {
             apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -44,10 +41,7 @@ export default function SearchPage() {
 
   async function addToBasket(product: Product) {
     const sessionId = localStorage.getItem('cart2save_session')
-    if (!sessionId) {
-      alert('No session found')
-      return
-    }
+    if (!sessionId) return alert('No session found')
 
     await fetch('/api/basket/add', {
       method: 'POST',
@@ -65,39 +59,74 @@ export default function SearchPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 20 }}>Loading products…</div>
+    return <div style={{ padding: 24, fontSize: 16 }}>Loading products…</div>
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      <h1>Search Results</h1>
+    <div style={{ padding: 20, maxWidth: 720, margin: '0 auto' }}>
+      <h1 style={{ fontSize: 24, marginBottom: 20 }}>
+        Search Results
+      </h1>
 
-      {products.map((product) => (
-        <div
-          key={product.id}
-          style={{
-            border: '1px solid #ddd',
-            padding: 16,
-            marginBottom: 12,
-            borderRadius: 8
-          }}
-        >
-          <h3>{product.product_name}</h3>
-          <p>₹{product.price}</p>
+      {products.map((product) => {
+        const isGrocery = product.sector === 'grocery'
 
-          <button
-            onClick={() => addToBasket(product)}
+        return (
+          <div
+            key={product.id}
             style={{
-              padding: '8px 12px',
-              background: '#000',
-              color: '#fff',
-              borderRadius: 6
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              border: '1px solid #e5e5e5',
+              padding: 16,
+              marginBottom: 14,
+              borderRadius: 12,
+              background: '#fff'
             }}
           >
-            Add to Basket
-          </button>
-        </div>
-      ))}
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>
+                {product.product_name}
+              </div>
+              <div style={{ marginTop: 6, color: '#444' }}>
+                ₹{product.price}
+              </div>
+              {product.sector && (
+                <div style={{ marginTop: 4, fontSize: 12, color: '#888' }}>
+                  {product.sector}
+                </div>
+              )}
+            </div>
+
+            {isGrocery ? (
+              <button
+                onClick={() => addToBasket(product)}
+                style={{
+                  padding: '10px 14px',
+                  background: '#0a0a0a',
+                  color: '#fff',
+                  borderRadius: 8,
+                  fontSize: 14
+                }}
+              >
+                Add to Basket
+              </button>
+            ) : (
+              <button
+                style={{
+                  padding: '10px 14px',
+                  background: '#f3f3f3',
+                  borderRadius: 8,
+                  fontSize: 14
+                }}
+              >
+                View & Buy
+              </button>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
