@@ -80,7 +80,7 @@ export default function ProductDetailPage() {
       : null
 
   return (
-    <div style={{ paddingBottom: 160 }}>
+    <div style={{ paddingBottom: 180 }}>
       {/* Product Image */}
       <div
         style={{
@@ -171,11 +171,11 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {/* Sticky Action Bar — FIXED */}
+      {/* Sticky Action Bar — FINAL FIX */}
       <div
         style={{
           position: 'fixed',
-          bottom: 56, // 👈 keeps ABOVE Search/Basket/Account bar
+          bottom: 72, // ✅ EXACT height of BottomNav
           left: 0,
           right: 0,
           background: '#fff',
