@@ -1,59 +1,103 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react'
 
-const SECTORS = [
-  { id: 'food', label: '🍔 Food' },
-  { id: 'grocery', label: '🛒 Groceries' },
-  { id: 'electronics', label: '📱 Electronics' },
-  { id: 'pharmacy', label: '💊 Pharmacy' },
-  { id: 'apparel', label: '👕 Fashion' },
-];
+type Product = {
+  id: string
+  product_name: string
+  price: number
+  merchant_id: string
+}
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('');
-  const [sector, setSector] = useState('food');
-  const router = useRouter();
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  useEffect(() => {
+    async function initAndLoad() {
+      // 1. Initialize basket session
+      const initRes = await fetch('/api/basket/init', {
+        method: 'POST'
+      })
+      const initData = await initRes.json()
 
-    router.push(`/results?s=${sector}&q=${encodeURIComponent(query)}`);
-  };
+      // Save session for later pages
+      localStorage.setItem('cart2save_session', initData.session_id)
+
+      // 2. Load demo products from Supabase (public table)
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id`,
+        {
+          headers: {
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          }
+        }
+      )
+
+      const data = await res.json()
+      setProducts(data)
+      setLoading(false)
+    }
+
+    initAndLoad()
+  }, [])
+
+  async function addToBasket(product: Product) {
+    const sessionId = localStorage.getItem('cart2save_session')
+    if (!sessionId) {
+      alert('No session found')
+      return
+    }
+
+    await fetch('/api/basket/add', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Session-ID': sessionId
+      },
+      body: JSON.stringify({
+        product_uuid: product.id,
+        quantity: 1
+      })
+    })
+
+    alert('Added to basket')
+  }
+
+  if (loading) {
+    return <div style={{ padding: 20 }}>Loading products…</div>
+  }
 
   return (
-    <main className="min-h-screen bg-slate-100 flex flex-col items-center justify-center p-6">
-      <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Search Best Price</h1>
+    <div style={{ padding: 20 }}>
+      <h1>Search Results</h1>
 
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          {SECTORS.map(s => (
-            <button
-              key={s.id}
-              onClick={() => setSector(s.id)}
-              className={`p-2 rounded-lg text-sm ${
-                sector === s.id ? 'bg-indigo-600 text-white' : 'bg-gray-200'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+      {products.map((product) => (
+        <div
+          key={product.id}
+          style={{
+            border: '1px solid #ddd',
+            padding: 16,
+            marginBottom: 12,
+            borderRadius: 8
+          }}
+        >
+          <h3>{product.product_name}</h3>
+          <p>₹{product.price}</p>
 
-        <form onSubmit={handleSearch} className="flex gap-2">
-          <input
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search product..."
-            className="flex-1 p-3 border rounded-xl"
-          />
-          <button className="bg-indigo-600 text-white px-4 rounded-xl">
-            Go
+          <button
+            onClick={() => addToBasket(product)}
+            style={{
+              padding: '8px 12px',
+              background: '#000',
+              color: '#fff',
+              borderRadius: 6
+            }}
+          >
+            Add to Basket
           </button>
-        </form>
-      </div>
-    </main>
-  );
+        </div>
+      ))}
+    </div>
+  )
 }
