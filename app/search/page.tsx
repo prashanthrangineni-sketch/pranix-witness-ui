@@ -7,24 +7,24 @@ type Product = {
   product_name: string
   price: number
   merchant_id: string
-  sector?: string
 }
 
 export default function SearchPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeSector, setActiveSector] = useState<string>('all')
 
   useEffect(() => {
     async function initAndLoad() {
-      // Initialize basket session
-      const initRes = await fetch('/api/basket/init', { method: 'POST' })
+      // 1. Initialize basket session
+      const initRes = await fetch('/api/basket/init', {
+        method: 'POST'
+      })
       const initData = await initRes.json()
       localStorage.setItem('cart2save_session', initData.session_id)
 
-      // Load products
+      // 2. Load products
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id,sector`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id`,
         {
           headers: {
             apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -42,7 +42,10 @@ export default function SearchPage() {
 
   async function addToBasket(product: Product) {
     const sessionId = localStorage.getItem('cart2save_session')
-    if (!sessionId) return
+    if (!sessionId) {
+      alert('Session not found')
+      return
+    }
 
     await fetch('/api/basket/add', {
       method: 'POST',
@@ -59,103 +62,99 @@ export default function SearchPage() {
     alert('Added to basket')
   }
 
-  const filteredProducts =
-    activeSector === 'all'
-      ? products
-      : products.filter((p) => p.sector === activeSector)
-
   if (loading) {
-    return <div style={{ padding: 24, fontSize: 18 }}>Loading products…</div>
+    return (
+      <div style={{ padding: 24, fontSize: 16 }}>
+        Loading products…
+      </div>
+    )
   }
 
   return (
-    <div style={{ paddingBottom: 90 }}>
-      {/* HEADER */}
-      <div style={{ padding: '20px 16px 12px' }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>
-          Search
-        </h1>
+    <div style={{ padding: 16, maxWidth: 720, margin: '0 auto' }}>
+      <h1
+        style={{
+          fontSize: 22,
+          fontWeight: 600,
+          marginBottom: 16
+        }}
+      >
+        Search Results
+      </h1>
 
-        {/* SECTOR TABS */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          {['all', 'grocery', 'electronics', 'pharmacy'].map((sector) => (
-            <button
-              key={sector}
-              onClick={() => setActiveSector(sector)}
-              style={{
-                padding: '8px 16px',
-                borderRadius: 999,
-                border: '1px solid #ddd',
-                background:
-                  activeSector === sector ? '#000' : '#fff',
-                color: activeSector === sector ? '#fff' : '#000',
-                fontWeight: 600
-              }}
-            >
-              {sector === 'all'
-                ? 'ALL'
-                : sector.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* PRODUCT LIST */}
-      <div style={{ padding: '0 16px' }}>
-        {filteredProducts.map((product) => (
+      {products.map((product) => (
+        <div
+          key={product.id}
+          style={{
+            display: 'flex',
+            gap: 16,
+            padding: 16,
+            marginBottom: 14,
+            borderRadius: 12,
+            border: '1px solid #e5e7eb',
+            background: '#ffffff',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          }}
+        >
+          {/* Image placeholder */}
           <div
-            key={product.id}
             style={{
-              background: '#fff',
-              borderRadius: 16,
-              padding: 16,
-              marginBottom: 16,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+              width: 80,
+              height: 80,
+              borderRadius: 10,
+              background:
+                'linear-gradient(135deg, #f3f4f6, #e5e7eb)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 12,
+              color: '#6b7280'
             }}
           >
-            <div style={{ fontSize: 18, fontWeight: 700 }}>
+            Image
+          </div>
+
+          {/* Product details */}
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontSize: 16,
+                fontWeight: 500,
+                marginBottom: 6,
+                lineHeight: 1.3
+              }}
+            >
               {product.product_name}
             </div>
 
             <div
               style={{
-                fontSize: 14,
-                color: '#666',
-                marginTop: 4
+                fontSize: 15,
+                fontWeight: 600,
+                marginBottom: 10
               }}
             >
-              {product.sector}
+              ₹{product.price}
             </div>
 
-            <div
+            <button
+              onClick={() => addToBasket(product)}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: 12
+                padding: '8px 14px',
+                background: '#111827',
+                color: '#ffffff',
+                borderRadius: 8,
+                fontSize: 14,
+                fontWeight: 500,
+                border: 'none',
+                cursor: 'pointer'
               }}
             >
-              <div style={{ fontSize: 20, fontWeight: 800 }}>
-                ₹{product.price}
-              </div>
-
-              <button
-                onClick={() => addToBasket(product)}
-                style={{
-                  padding: '10px 18px',
-                  background: '#000',
-                  color: '#fff',
-                  borderRadius: 10,
-                  fontWeight: 700,
-                  border: 'none'
-                }}
-              >
-                Add to Basket
-              </button>
-            </div>
+              Add to Basket
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }
