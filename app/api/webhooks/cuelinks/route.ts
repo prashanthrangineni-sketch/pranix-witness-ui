@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 
 /**
- * CueLinks TEST calls this with GET
- * We must always return 200
+ * CueLinks TEST sometimes hits GET
+ * Always return 200
  */
 export async function GET() {
   return NextResponse.json({ success: true }, { status: 200 })
@@ -13,35 +13,73 @@ export async function POST(req: Request) {
   try {
     let payload: any = {}
 
-    // Safely parse JSON only if present
+    // CueLinks may send empty body during TEST
     try {
       payload = await req.json()
     } catch {
-      // CueLinks may send empty body during TEST
       return NextResponse.json({ success: true }, { status: 200 })
     }
 
+    /**
+     * HARDENED FIELD MAPPING
+     * - Never insert NULL into NOT NULL columns
+     * - Safe defaults everywhere
+     */
+
+    const quantity =
+      Number(payload.quantity) > 0 ? Number(payload.quantity) : 1
+
+    const productPrice =
+      Number(payload.product_price ?? payload.price) || 0
+
+    const totalAmount =
+      Number(payload.order_value ?? payload.amount) ||
+      productPrice * quantity ||
+      0
+
     const order = {
-      affiliate_network: 'CUELINKS',
-      affiliate_click_id: payload.click_id || payload.sub_id || null,
-      affiliate_order_id: payload.order_id || payload.transaction_id || null,
+      // REQUIRED / HARDENED
+      order_id:
+        payload.order_id ||
+        payload.transaction_id ||
+        `CUELINKS_${Date.now()}`,
 
-      product_id: payload.product_id || null,
-      product_name: payload.product_name || payload.product_title || null,
-      product_price: payload.product_price || payload.price || null,
-      quantity: payload.quantity || 1,
+      merchant_id:
+        payload.merchant_id &&
+        /^[0-9a-fA-F-]{36}$/.test(payload.merchant_id)
+          ? payload.merchant_id
+          : '11111111-1111-1111-1111-111111111111',
 
-      order_value: payload.order_value || payload.amount || null,
-      commission_value: payload.commission || null,
+      total_amount: totalAmount,
       currency: payload.currency || 'INR',
 
-      merchant: payload.merchant_name || null,
-      merchant_id: payload.merchant_id || null,
+      // AFFILIATE
+      affiliate_network: 'CUELINKS',
+      affiliate_click_id: payload.click_id || payload.sub_id || null,
+      affiliate_order_id:
+        payload.order_id || payload.transaction_id || null,
 
-      order_status: payload.order_status || 'PLACED',
+      // PRODUCT
+      product_id: payload.product_id || null,
+      product_name:
+        payload.product_name || payload.product_title || 'Unknown Product',
+      product_price: productPrice,
+      quantity,
+
+      // COMMISSION
+      order_value: totalAmount,
+      commission_value: Number(payload.commission) || 0,
+
+      // MERCHANT (TEXT FIELD)
+      merchant: payload.merchant_name || 'Unknown Merchant',
+
+      // STATUS
+      order_status: payload.order_status || 'CONFIRMED',
       payment_status: payload.payment_status || 'UNKNOWN',
       settlement_status: 'PENDING',
+      delivery_status: payload.delivery_status || 'PENDING',
 
+      // SOURCE
       order_source: 'CUELINKS',
       source: 'affiliate',
 
@@ -53,13 +91,13 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('CueLinks insert error:', error)
-      // IMPORTANT: still return 200 so CueLinks can SAVE
+      // MUST still return 200 or CueLinks will not save webhook
       return NextResponse.json({ success: true }, { status: 200 })
     }
 
     return NextResponse.json({ success: true }, { status: 200 })
   } catch (e) {
-    console.error('Webhook error:', e)
+    console.error('Webhook fatal error:', e)
     return NextResponse.json({ success: true }, { status: 200 })
   }
 }
