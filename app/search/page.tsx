@@ -14,24 +14,31 @@ const SECTORS = [
   'Electronics',
   'Fashion',
   'Food',
+  'Pharmacy',
   'Travel',
-  'Services',
-  'Insurance'
+  'Services'
+]
+
+const OFFERS = [
+  'Top Price Drops',
+  'Verified Deals',
+  'Lowest Today',
+  'Popular Near You'
 ]
 
 export default function SearchPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeSector, setActiveSector] = useState<string>('Grocery')
+  const [activeSector, setActiveSector] = useState('Grocery')
 
   useEffect(() => {
     async function initAndLoad() {
-      // 1. Initialize basket session
+      // Initialize basket session
       const initRes = await fetch('/api/basket/init', { method: 'POST' })
       const initData = await initRes.json()
       localStorage.setItem('cart2save_session', initData.session_id)
 
-      // 2. Load products (demo feed)
+      // Load products (public read)
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?select=id,product_name,price,merchant_id`,
         {
@@ -52,7 +59,7 @@ export default function SearchPage() {
   async function addToBasket(product: Product) {
     const sessionId = localStorage.getItem('cart2save_session')
     if (!sessionId) {
-      alert('No active session')
+      alert('Session not found')
       return
     }
 
@@ -76,50 +83,44 @@ export default function SearchPage() {
   }
 
   return (
-    <div style={{ paddingBottom: 120 }}>
-      {/* ASK BAR */}
-      <div
-        style={{
-          padding: 16,
-          position: 'sticky',
-          top: 0,
-          background: '#fff',
-          zIndex: 10,
-          borderBottom: '1px solid #eee'
-        }}
-      >
-        <input
-          placeholder="Search products, services, or ask anything…"
-          style={{
-            width: '100%',
-            padding: '14px 16px',
-            borderRadius: 10,
-            border: '1px solid #ddd',
-            fontSize: 16
-          }}
-        />
-      </div>
-
-      {/* SECTOR STRIP */}
+    <div style={{ padding: 16, maxWidth: 960, margin: '0 auto' }}>
+      {/* SEARCH BAR */}
       <div
         style={{
           display: 'flex',
-          overflowX: 'auto',
+          alignItems: 'center',
           gap: 12,
-          padding: '12px 16px'
+          padding: 12,
+          border: '1px solid #ddd',
+          borderRadius: 12,
+          marginBottom: 16
         }}
       >
+        <input
+          placeholder="Search for products, brands, services…"
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            fontSize: 16
+          }}
+        />
+        <span title="Voice Search" style={{ fontSize: 18 }}>🎤</span>
+        <span title="Image Search" style={{ fontSize: 18 }}>📷</span>
+      </div>
+
+      {/* SECTOR PILLS */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 16 }}>
         {SECTORS.map((sector) => (
           <button
             key={sector}
             onClick={() => setActiveSector(sector)}
             style={{
-              padding: '8px 14px',
+              padding: '6px 14px',
               borderRadius: 20,
-              border: '1px solid #ddd',
-              background: sector === activeSector ? '#000' : '#fff',
-              color: sector === activeSector ? '#fff' : '#000',
-              fontSize: 14,
+              border: '1px solid #ccc',
+              background: activeSector === sector ? '#000' : '#fff',
+              color: activeSector === sector ? '#fff' : '#000',
               whiteSpace: 'nowrap'
             }}
           >
@@ -128,73 +129,56 @@ export default function SearchPage() {
         ))}
       </div>
 
-      {/* PRODUCT LIST */}
-      <div style={{ padding: '0 16px' }}>
+      {/* OFFERS STRIP */}
+      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', marginBottom: 20 }}>
+        {OFFERS.map((offer) => (
+          <div
+            key={offer}
+            style={{
+              minWidth: 160,
+              padding: 12,
+              background: '#f7f7f7',
+              borderRadius: 10,
+              fontWeight: 500
+            }}
+          >
+            {offer}
+          </div>
+        ))}
+      </div>
+
+      {/* PRODUCT RESULTS */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
         {products.map((product) => (
           <div
             key={product.id}
             style={{
               border: '1px solid #e5e5e5',
               borderRadius: 12,
-              padding: 16,
-              marginBottom: 14,
-              background: '#fff'
+              padding: 14,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8
             }}
           >
-            <div style={{ fontSize: 16, fontWeight: 600 }}>
-              {product.product_name}
-            </div>
-
-            <div style={{ marginTop: 6, fontSize: 15 }}>
-              ₹{product.price}
-            </div>
+            <div style={{ fontWeight: 600 }}>{product.product_name}</div>
+            <div style={{ fontSize: 14 }}>₹{product.price}</div>
 
             <button
               onClick={() => addToBasket(product)}
               style={{
-                marginTop: 12,
-                width: '100%',
-                padding: '10px 0',
+                marginTop: 'auto',
+                padding: '8px 10px',
                 borderRadius: 8,
-                border: 'none',
                 background: '#000',
                 color: '#fff',
-                fontSize: 15
+                border: 'none'
               }}
             >
               Add to Basket
             </button>
           </div>
         ))}
-      </div>
-
-      {/* STICKY BOTTOM BAR */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          background: '#fff',
-          borderTop: '1px solid #eee',
-          padding: 14
-        }}
-      >
-        <a
-          href="/basket"
-          style={{
-            display: 'block',
-            textAlign: 'center',
-            background: '#000',
-            color: '#fff',
-            padding: '12px 0',
-            borderRadius: 10,
-            textDecoration: 'none',
-            fontSize: 16
-          }}
-        >
-          View Basket
-        </a>
       </div>
     </div>
   )
