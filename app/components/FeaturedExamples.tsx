@@ -14,22 +14,27 @@ export default function FeaturedExamples() {
   return (
     <section
       style={{
-        maxWidth: '720px',
-        margin: '24px auto',
-        padding: '0 16px',
+        marginBottom: '32px',
       }}
     >
       <h3
         style={{
           fontSize: '15px',
           fontWeight: 600,
-          marginBottom: '12px',
+          marginBottom: '14px',
         }}
       >
         Example comparisons
       </h3>
 
-      <div style={{ display: 'flex', gap: '12px', overflowX: 'auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: '14px',
+          overflowX: 'auto',
+          paddingBottom: '4px',
+        }}
+      >
         {EXAMPLES.map((e) => (
           <div
             key={e.label}
@@ -37,16 +42,24 @@ export default function FeaturedExamples() {
               router.push(`/search?q=${encodeURIComponent(e.query)}`)
             }
             style={{
-              minWidth: '140px',
-              padding: '14px',
-              borderRadius: '12px',
+              minWidth: '150px',
+              padding: '16px',
+              borderRadius: '14px',
               backgroundColor: '#ffffff',
               border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               cursor: 'pointer',
             }}
           >
-            <div style={{ fontWeight: 600 }}>{e.label}</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+            <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+              {e.label}
+            </div>
+            <div
+              style={{
+                fontSize: '12px',
+                color: '#6b7280',
+              }}
+            >
               {e.sector}
             </div>
           </div>
