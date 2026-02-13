@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Header from './components/Header'
+import Footer from './components/Footer'
 import BottomNav from './components/BottomNav'
 
 export const metadata: Metadata = {
@@ -27,7 +28,12 @@ export default function RootLayout({
         <Header />
 
         {/* 🔽 PAGE CONTENT */}
-        <main style={{ paddingBottom: '90px' }}>{children}</main>
+        <main style={{ paddingBottom: '90px' }}>
+          {children}
+        </main>
+
+        {/* 🔽 FOOTER */}
+        <Footer />
 
         {/* 🔽 BOTTOM NAV */}
         <BottomNav />
