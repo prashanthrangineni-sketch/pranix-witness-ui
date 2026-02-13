@@ -17,7 +17,7 @@ function ResultsContent() {
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          marginBottom: '16px',
+          marginBottom: '20px',
         }}
       >
         <button
@@ -37,22 +37,71 @@ function ResultsContent() {
         </h1>
       </div>
 
-      {/* PLACEHOLDER RESULTS */}
+      {/* PLACEHOLDER INFO */}
       <div
         style={{
-          padding: '20px',
+          padding: '16px',
           borderRadius: '14px',
           background: '#ffffff',
           border: '1px solid #e5e7eb',
           color: '#6b7280',
           fontSize: '14px',
+          marginBottom: '24px',
         }}
       >
         Price comparisons will appear here.
         <br />
-        <br />
         We’ll show results from platforms and merchants where available.
       </div>
+
+      {/* 🔗 AVAILABLE PLATFORMS */}
+      <section>
+        <h2
+          style={{
+            fontSize: '16px',
+            fontWeight: 700,
+            marginBottom: '12px',
+          }}
+        >
+          Available on platforms
+        </h2>
+
+        {/* Tata CLiQ card */}
+        <div
+          style={{
+            background: '#ffffff',
+            border: '1px solid #e5e7eb',
+            borderRadius: '14px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 700 }}>Tata CLiQ</div>
+            <div style={{ fontSize: '13px', color: '#6b7280' }}>
+              Fashion · Affiliate partner
+            </div>
+          </div>
+
+          <a
+            href={`/api/out?m=tatacliq&q=${encodeURIComponent(query)}`}
+            style={{
+              padding: '10px 14px',
+              borderRadius: '10px',
+              backgroundColor: '#111827',
+              color: '#ffffff',
+              fontSize: '14px',
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            View on Tata CLiQ →
+          </a>
+        </div>
+      </section>
     </main>
   )
 }
