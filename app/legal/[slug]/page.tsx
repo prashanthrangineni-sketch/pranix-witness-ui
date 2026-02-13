@@ -1,50 +1,52 @@
-interface Props {
+import { notFound } from 'next/navigation'
+
+const LEGAL_MAP: Record<string, string> = {
+  terms: 'Terms_of_Service.pdf',
+  privacy: 'Privacy_Policy.pdf',
+  affiliate: 'Affiliate_Disclosure.pdf',
+  neutrality: 'Neutrality_Disclosure.pdf',
+}
+
+export default function LegalPage({
+  params,
+}: {
   params: { slug: string }
-}
+}) {
+  const file = LEGAL_MAP[params.slug]
 
-const LEGAL_MAP: Record<string, { title: string; file: string }> = {
-  terms: {
-    title: 'Terms of Service',
-    file: '/legal/Terms_of_Service.pdf',
-  },
-  privacy: {
-    title: 'Privacy Policy',
-    file: '/legal/Privacy_Policy.pdf',
-  },
-  neutrality: {
-    title: 'Neutrality Disclosure',
-    file: '/legal/Neutrality_Disclosure.pdf',
-  },
-  affiliate: {
-    title: 'Affiliate Disclosure',
-    file: '/legal/Affiliate_Disclosure.pdf',
-  },
-}
-
-export default function LegalPage({ params }: Props) {
-  const doc = LEGAL_MAP[params.slug]
-
-  if (!doc) {
-    return <div style={{ padding: 32 }}>Document not found.</div>
+  if (!file) {
+    notFound()
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 16 }}>
-        {doc.title}
+    <main
+      style={{
+        maxWidth: '720px',
+        margin: '0 auto',
+        padding: '24px 16px',
+      }}
+    >
+      <h1
+        style={{
+          fontSize: '22px',
+          fontWeight: 700,
+          marginBottom: '12px',
+        }}
+      >
+        {params.slug.replace('-', ' ').toUpperCase()}
       </h1>
 
-      <p style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+      <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '16px' }}>
         This document is provided for transparency and compliance.
       </p>
 
       <iframe
-        src={doc.file}
+        src={`/legal/${file}`}
         style={{
           width: '100%',
-          height: '70vh',
+          height: '80vh',
           border: '1px solid #e5e7eb',
-          borderRadius: 8,
+          borderRadius: '8px',
         }}
       />
     </main>
