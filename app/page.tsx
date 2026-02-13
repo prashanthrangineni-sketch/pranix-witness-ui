@@ -6,7 +6,7 @@ export default function HomePage() {
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
       
       {/* HERO */}
-      <section style={{ marginBottom: '36px' }}>
+      <section style={{ marginBottom: '28px' }}>
         <h1
           style={{
             fontSize: '32px',
@@ -36,6 +36,29 @@ export default function HomePage() {
           }}
         >
           Start comparing prices
+        </a>
+      </section>
+
+      {/* 🔍 STICKY SEARCH ENTRY (STEP 34) */}
+      <section style={{ marginBottom: '32px' }}>
+        <a
+          href="/search"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '14px 16px',
+            borderRadius: '14px',
+            border: '1px solid #e5e7eb',
+            backgroundColor: '#ffffff',
+            textDecoration: 'none',
+            color: '#6b7280',
+            fontSize: '15px',
+            fontWeight: 500,
+          }}
+        >
+          <span style={{ fontSize: '18px' }}>🔍</span>
+          <span>Search products, brands, services…</span>
         </a>
       </section>
 
