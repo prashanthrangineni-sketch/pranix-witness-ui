@@ -65,7 +65,7 @@ export default function Header() {
             cursor: 'pointer',
           }}
         >
-          Are you a merchant?
+          List prices transparently
         </button>
       </div>
     </header>
