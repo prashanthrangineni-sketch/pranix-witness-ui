@@ -1,18 +1,27 @@
 export default function LogisticsPartnerPage() {
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, marginBottom: 12 }}>
-        Logistics & Platform Partners
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: '32px 16px' }}>
+      <h1 style={{ fontSize: 28, fontWeight: 800, marginBottom: 12 }}>
+        Logistics partnerships
       </h1>
 
       <p style={{ fontSize: 16, color: '#4b5563', marginBottom: 20 }}>
-        Cart2Save works with independent logistics, mobility, and platform
-        partners to enable neutral commerce execution.
+        Cart2Save collaborates with independent logistics and fleet providers
+        to enable merchant fulfilment where local delivery networks are required.
       </p>
 
+      <section style={{ marginBottom: 20 }}>
+        <ul>
+          <li>Non-exclusive partnerships</li>
+          <li>Bring-your-own-fleet model</li>
+          <li>Task-level integrations</li>
+          <li>No guaranteed volumes</li>
+        </ul>
+      </section>
+
       <p style={{ marginBottom: 24 }}>
-        If you operate logistics, mobility, or fulfillment infrastructure and
-        wish to integrate with Cart2Save:
+        If you operate a logistics or delivery network and would like to
+        explore collaboration, reach out to us.
       </p>
 
       <a
@@ -21,13 +30,13 @@ export default function LogisticsPartnerPage() {
           display: 'inline-block',
           padding: '14px 18px',
           borderRadius: 12,
-          background: '#111827',
-          color: '#fff',
+          backgroundColor: '#2563eb',
+          color: '#ffffff',
           fontWeight: 600,
           textDecoration: 'none',
         }}
       >
-        Contact partnerships team
+        Contact partnerships →
       </a>
     </main>
   )
