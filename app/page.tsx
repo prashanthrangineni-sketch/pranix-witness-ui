@@ -1,4 +1,5 @@
 import SectorGrid from './components/SectorGrid'
+import FeaturedExamples from './components/FeaturedExamples'
 
 export default function HomePage() {
   return (
@@ -40,6 +41,9 @@ export default function HomePage() {
 
       {/* SECTORS */}
       <SectorGrid />
+
+      {/* FEATURED EXAMPLES */}
+      <FeaturedExamples />
 
       {/* TRUST STRIP */}
       <section
