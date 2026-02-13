@@ -20,13 +20,13 @@ export default function Header() {
         style={{
           maxWidth: '720px',
           margin: '0 auto',
-          padding: '12px 16px',
+          padding: '14px 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
         }}
       >
-        {/* LEFT: LOGO + HOME */}
+        {/* LEFT: LOGO */}
         <div
           onClick={() => router.push('/')}
           style={{
@@ -39,21 +39,23 @@ export default function Header() {
           <Image
             src="/brand/cart2save-logo.png"
             alt="Cart2Save"
-            width={36}
-            height={36}
+            width={34}
+            height={34}
+            priority
           />
           <span
             style={{
               fontSize: '18px',
-              fontWeight: 700,
+              fontWeight: 800,
               color: '#111827',
+              letterSpacing: '-0.2px',
             }}
           >
             Cart2Save
           </span>
         </div>
 
-        {/* RIGHT: MERCHANT */}
+        {/* RIGHT: MERCHANT CTA */}
         <button
           onClick={() => router.push('/merchant/signup')}
           style={{
@@ -63,6 +65,7 @@ export default function Header() {
             fontSize: '14px',
             fontWeight: 600,
             cursor: 'pointer',
+            padding: '6px 8px',
           }}
         >
           List prices transparently
