@@ -19,7 +19,7 @@ export default function SearchPage() {
   const [activeChip, setActiveChip] = useState<string | null>(null)
 
   function goToResults(value: string) {
-    if (!value) return
+    if (!value.trim()) return
     router.push(`/search/results?q=${encodeURIComponent(value)}`)
   }
 
@@ -50,10 +50,13 @@ export default function SearchPage() {
         <input
           value={query}
           onChange={(e) => {
-            const value = e.target.value
-            setQuery(value)
+            setQuery(e.target.value)
             setActiveChip(null)
-            goToResults(value)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              goToResults(query)
+            }
           }}
           placeholder="Search products, brands, services…"
           style={{
@@ -108,7 +111,7 @@ export default function SearchPage() {
 
       {/* INFO */}
       <div style={{ color: '#6b7280', fontSize: '14px' }}>
-        Type or choose a category to compare prices
+        Type a search and press Enter, or choose a category
       </div>
     </div>
   )
