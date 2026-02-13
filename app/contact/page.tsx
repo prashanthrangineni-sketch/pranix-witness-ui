@@ -18,7 +18,7 @@ export default function ContactPage() {
       >
         <div>
           <strong>Support:</strong>{' '}
-          <a href="mailto:support@cartsave.com">support@cartsave.com</a>
+          <a href="mailto:support@cart2save.com">support@cart2save.com</a>
         </div>
 
         <div>
