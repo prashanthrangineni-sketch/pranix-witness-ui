@@ -34,6 +34,7 @@ export default function NeutralityPage() {
 
         <p>
           Neutrality is foundational to how Cart2Save is built and operated.
+          <a href="/legal/neutrality">Neutrality Disclosure (PDF)</a>
         </p>
       </div>
     </main>
