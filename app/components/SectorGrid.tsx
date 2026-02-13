@@ -16,8 +16,14 @@ export default function SectorGrid() {
   const router = useRouter()
 
   return (
-    <section style={{ marginBottom: '32px' }}>
-      <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '14px' }}>
+    <section style={{ marginBottom: '36px' }}>
+      <h2
+        style={{
+          fontSize: '18px',
+          fontWeight: 700,
+          marginBottom: '16px',
+        }}
+      >
         Explore categories
       </h2>
 
@@ -36,17 +42,23 @@ export default function SectorGrid() {
             }
             style={{
               backgroundColor: s.bg,
-              borderRadius: '16px',
-              padding: '18px 12px',
+              borderRadius: '18px',
+              padding: '20px 12px',
               textAlign: 'center',
               cursor: 'pointer',
               border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
             }}
           >
-            <div style={{ fontSize: '28px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>
               {s.icon}
             </div>
-            <div style={{ fontSize: '14px', fontWeight: 600 }}>
+            <div
+              style={{
+                fontSize: '14px',
+                fontWeight: 600,
+              }}
+            >
               {s.label}
             </div>
           </div>
