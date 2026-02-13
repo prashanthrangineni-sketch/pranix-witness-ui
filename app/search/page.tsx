@@ -18,8 +18,14 @@ export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [activeChip, setActiveChip] = useState<string | null>(null)
 
+  function goToResults(value: string) {
+    if (!value) return
+    router.push(`/search/results?q=${encodeURIComponent(value)}`)
+  }
+
   return (
     <div style={{ padding: '16px', maxWidth: '720px', margin: '0 auto' }}>
+      
       {/* 🔙 BACK + SEARCH */}
       <div
         style={{
@@ -44,8 +50,10 @@ export default function SearchPage() {
         <input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value)
+            const value = e.target.value
+            setQuery(value)
             setActiveChip(null)
+            goToResults(value)
           }}
           placeholder="Search products, brands, services…"
           style={{
@@ -76,6 +84,7 @@ export default function SearchPage() {
               onClick={() => {
                 setActiveChip(chip)
                 setQuery(chip)
+                goToResults(chip)
               }}
               style={{
                 padding: '7px 16px',
@@ -97,9 +106,9 @@ export default function SearchPage() {
         })}
       </div>
 
-      {/* RESULTS PLACEHOLDER */}
+      {/* INFO */}
       <div style={{ color: '#6b7280', fontSize: '14px' }}>
-        Start typing or select a category to see results
+        Type or choose a category to compare prices
       </div>
     </div>
   )
