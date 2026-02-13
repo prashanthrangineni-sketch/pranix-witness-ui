@@ -1,43 +1,27 @@
 import { NextResponse } from 'next/server'
 
-const MERCHANTS: Record<string, string> = {
-  tatacliq: 'https://www.tatacliq.com/',
-}
-
 export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const merchantKey = searchParams.get('m')
-    const query = searchParams.get('q')
+  const { searchParams } = new URL(request.url)
 
-    if (!merchantKey) {
-      return NextResponse.json(
-        { error: 'Missing merchant parameter' },
-        { status: 400 }
-      )
-    }
+  const merchant = searchParams.get('m')
+  const query = searchParams.get('q') || ''
 
-    const baseUrl = MERCHANTS[merchantKey]
+  // ✅ Simple merchant map (NO database yet)
+  if (merchant === 'tatacliq') {
+    // Base Tata CLiQ URL
+    const destination =
+      query
+        ? `https://www.tatacliq.com/search?q=${encodeURIComponent(query)}`
+        : 'https://www.tatacliq.com/'
 
-    if (!baseUrl) {
-      return NextResponse.json(
-        { error: 'Unknown merchant' },
-        { status: 400 }
-      )
-    }
+    // 🔗 Wrap with CueLinks
+    const cuelinksUrl =
+      `https://linksredirect.com/?cid=263419&source=linkkit&url=` +
+      encodeURIComponent(destination)
 
-    let redirectUrl = baseUrl
-
-    if (query) {
-      redirectUrl =
-        baseUrl + 'search?q=' + encodeURIComponent(query)
-    }
-
-    return NextResponse.redirect(redirectUrl, 302)
-  } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal redirect error' },
-      { status: 500 }
-    )
+    return NextResponse.redirect(cuelinksUrl, { status: 307 })
   }
+
+  // ❌ Fallback (unknown merchant)
+  return new NextResponse('Invalid merchant', { status: 400 })
 }
