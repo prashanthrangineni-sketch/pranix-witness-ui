@@ -1,7 +1,19 @@
+'use client'
+
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import SectorGrid from './components/SectorGrid'
 import FeaturedExamples from './components/FeaturedExamples'
 
 export default function HomePage() {
+  const router = useRouter()
+  const [query, setQuery] = useState('')
+
+  function goToResults() {
+    if (!query.trim()) return
+    router.push(`/search/results?q=${encodeURIComponent(query)}`)
+  }
+
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
       
@@ -33,8 +45,8 @@ export default function HomePage() {
           fashion, mobility, and home services — transparently.
         </p>
 
-        <a
-          href="/search"
+        <button
+          onClick={() => router.push('/search')}
           style={{
             display: 'inline-block',
             padding: '15px 20px',
@@ -43,35 +55,48 @@ export default function HomePage() {
             color: '#ffffff',
             fontWeight: 700,
             fontSize: '15px',
-            textDecoration: 'none',
+            border: 'none',
+            cursor: 'pointer',
           }}
         >
           Start comparing prices
-        </a>
+        </button>
       </section>
 
-      {/* 🔍 STICKY SEARCH ENTRY */}
+      {/* 🔍 REAL SEARCH INPUT (FIXED) */}
       <section style={{ marginBottom: '36px' }}>
-        <a
-          href="/search"
+        <div
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: '12px',
-            padding: '16px',
+            padding: '14px 16px',
             borderRadius: '16px',
             border: '1px solid #e5e7eb',
             backgroundColor: '#ffffff',
-            textDecoration: 'none',
-            color: '#6b7280',
-            fontSize: '15px',
-            fontWeight: 500,
             boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
           }}
         >
           <span style={{ fontSize: '18px' }}>🔍</span>
-          <span>Search products, brands, services…</span>
-        </a>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                goToResults()
+              }
+            }}
+            placeholder="Search products, brands, services…"
+            style={{
+              flex: 1,
+              border: 'none',
+              outline: 'none',
+              fontSize: '15px',
+              fontWeight: 500,
+              color: '#111827',
+            }}
+          />
+        </div>
       </section>
 
       {/* SECTION DIVIDER */}
