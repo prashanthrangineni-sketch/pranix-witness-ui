@@ -1,56 +1,40 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
-type Merchant = {
-  slug: string
-  display_name: string
-  sector: string
-}
+const CHIPS = [
+  'Food',
+  'Grocery',
+  'Pharmacy',
+  'Electronics',
+  'Fashion',
+  'Mobility',
+  'Home services',
+]
 
-function ResultsContent() {
-  const searchParams = useSearchParams()
+export default function SearchPage() {
   const router = useRouter()
-  const query = searchParams.get('q') || ''
+  const [query, setQuery] = useState('')
+  const [activeChip, setActiveChip] = useState<string | null>(null)
 
-  const [merchants, setMerchants] = useState<Merchant[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchMerchants()
-  }, [])
-
-  async function fetchMerchants() {
-    setLoading(true)
-
-    const { data, error } = await supabase
-      .from('affiliate_partners')
-      .select('slug, display_name, sector')
-      .eq('is_active', true)
-
-    if (!error && data) {
-      setMerchants(data)
-    }
-
-    setLoading(false)
+  function goToResults(value: string) {
+    if (!value.trim()) return
+    router.push(`/search/results?q=${encodeURIComponent(value)}`)
   }
 
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
-      
-      {/* HEADER */}
+    <div style={{ padding: '16px', maxWidth: '720px', margin: '0 auto' }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          marginBottom: '20px',
+          marginBottom: '14px',
         }}
       >
         <button
-          onClick={() => router.push('/search')}
+          onClick={() => router.push('/')}
           style={{
             background: 'none',
             border: 'none',
@@ -61,79 +45,70 @@ function ResultsContent() {
           ←
         </button>
 
-        <h1 style={{ fontSize: '18px', fontWeight: 700 }}>
-          Results for “{query}”
-        </h1>
+        <input
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setActiveChip(null)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              goToResults(query)
+            }
+          }}
+          placeholder="Search products, brands, services…"
+          style={{
+            flex: 1,
+            padding: '12px 14px',
+            borderRadius: '12px',
+            border: '1px solid #e5e7eb',
+            fontSize: '15px',
+          }}
+        />
       </div>
 
-      {/* LOADING */}
-      {loading && (
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>
-          Loading platforms…
-        </div>
-      )}
-
-      {/* MERCHANT LIST */}
-      {!loading && merchants.length > 0 && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '14px',
-          }}
-        >
-          {merchants.map((m) => (
-            <a
-              key={m.slug}
-              href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                padding: '16px',
-                borderRadius: '14px',
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                textDecoration: 'none',
-                color: '#111827',
-                fontWeight: 600,
-                fontSize: '14px',
-                textAlign: 'center',
-              }}
-            >
-              {m.display_name}
-            </a>
-          ))}
-        </div>
-      )}
-
-      {/* EMPTY STATE */}
-      {!loading && merchants.length === 0 && (
-        <div style={{ fontSize: '14px', color: '#6b7280' }}>
-          No platforms available for this search yet.
-        </div>
-      )}
-
-      {/* FOOT NOTE */}
       <div
         style={{
-          marginTop: '28px',
-          fontSize: '12px',
-          color: '#6b7280',
-          lineHeight: '1.6',
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          paddingBottom: '6px',
+          marginBottom: '18px',
         }}
       >
-        Cart2Save is a neutral discovery platform. Prices and availability are
-        determined by the merchant. You will be redirected to the seller’s
-        website to complete your purchase.
+        {CHIPS.map((chip) => {
+          const active = chip === activeChip
+          return (
+            <div
+              key={chip}
+              onClick={() => {
+                setActiveChip(chip)
+                setQuery(chip)
+                goToResults(chip)
+              }}
+              style={{
+                padding: '7px 16px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                border: active
+                  ? '1px solid #111827'
+                  : '1px solid #e5e7eb',
+                backgroundColor: active ? '#111827' : '#ffffff',
+                color: active ? '#ffffff' : '#111827',
+              }}
+            >
+              {chip}
+            </div>
+          )
+        })}
       </div>
-    </main>
-  )
-}
 
-export default function SearchResultsPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 24 }}>Loading results…</div>}>
-      <ResultsContent />
-    </Suspense>
+      <div style={{ color: '#6b7280', fontSize: '14px' }}>
+        Type a search and press Enter, or choose a category
+      </div>
+    </div>
   )
 }
