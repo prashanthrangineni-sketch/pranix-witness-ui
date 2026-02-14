@@ -1,57 +1,59 @@
 'use client'
 
-import { Suspense } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
-/**
- * STEP A: SIMPLE MERCHANT MAP (TEMPORARY, SAFE)
- * This will later move to Supabase — NOT now.
- */
-const MERCHANTS = [
-  // Fashion
-  { slug: 'tatacliq', name: 'Tata CLiQ', sector: 'fashion' },
-  { slug: 'nykaa', name: 'Nykaa Fashion', sector: 'fashion' },
-  { slug: 'puma', name: 'Puma', sector: 'fashion' },
-  { slug: 'adidas', name: 'Adidas', sector: 'fashion' },
-
-  // Electronics
-  { slug: 'reliance', name: 'Reliance Digital', sector: 'electronics' },
-  { slug: 'croma', name: 'Croma', sector: 'electronics' },
-  { slug: 'samsung', name: 'Samsung', sector: 'electronics' },
-
-  // Food & Grocery
-  { slug: 'organicmandya', name: 'Organic Mandya', sector: 'grocery' },
-  { slug: 'purenutrition', name: 'Pure Nutrition', sector: 'grocery' },
-]
-
-function detectSector(query: string) {
-  const q = query.toLowerCase()
-
-  if (q.includes('dress') || q.includes('wear') || q.includes('shoe')) return 'fashion'
-  if (q.includes('phone') || q.includes('laptop') || q.includes('tv')) return 'electronics'
-  if (q.includes('food') || q.includes('rice') || q.includes('organic')) return 'grocery'
-
-  return null
+type Partner = {
+  id: string
+  slug: string
+  display_name: string
+  sector: string
+  affiliate_network: string
 }
 
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('q') || ''
+  const [partners, setPartners] = useState<Partner[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const sector = detectSector(query)
-  const matchingMerchants = sector
-    ? MERCHANTS.filter(m => m.sector === sector)
-    : []
+  useEffect(() => {
+    fetchPartners()
+  }, [])
+
+  async function fetchPartners() {
+    const { data, error } = await supabase
+      .from('affiliate_partners')
+      .select('id, slug, display_name, sector, affiliate_network')
+      .eq('is_active', true)
+
+    if (!error && data) {
+      setPartners(data)
+    }
+    setLoading(false)
+  }
 
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
-      
       {/* HEADER */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '20px',
+        }}
+      >
         <button
           onClick={() => router.push('/search')}
-          style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '20px',
+            cursor: 'pointer',
+          }}
         >
           ←
         </button>
@@ -61,67 +63,68 @@ function ResultsContent() {
         </h1>
       </div>
 
-      {/* EMPTY STATE */}
-      {matchingMerchants.length === 0 && (
-        <div style={{
-          padding: '20px',
+      {/* INFO */}
+      <div
+        style={{
+          padding: '16px',
           borderRadius: '14px',
           background: '#ffffff',
           border: '1px solid #e5e7eb',
           color: '#6b7280',
           fontSize: '14px',
-        }}>
-          No platforms found yet for this search.
-        </div>
+          marginBottom: '24px',
+        }}
+      >
+        Showing platforms where this item may be available.
+        <br />
+        Prices and checkout happen on the merchant site.
+      </div>
+
+      {/* RESULTS */}
+      {loading && <div>Loading platforms…</div>}
+
+      {!loading && partners.length === 0 && (
+        <div>No platforms available right now.</div>
       )}
 
-      {/* MERCHANT LIST */}
-      {matchingMerchants.length > 0 && (
-        <>
-          <h2 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>
-            Available on platforms
-          </h2>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {matchingMerchants.map(m => (
-              <div
-                key={m.slug}
-                style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '14px',
-                  padding: '14px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: '#ffffff',
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 700 }}>{m.name}</div>
-                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                    {m.sector} · Affiliate partner
-                  </div>
-                </div>
-
-                <a
-                  href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '999px',
-                    background: '#111827',
-                    color: '#ffffff',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                  }}
-                >
-                  View →
-                </a>
+      <section style={{ display: 'grid', gap: '12px' }}>
+        {partners.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '14px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <div>
+              <div style={{ fontWeight: 700 }}>{p.display_name}</div>
+              <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                {p.sector} · {p.affiliate_network}
               </div>
-            ))}
+            </div>
+
+            <a
+              href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
+              style={{
+                padding: '10px 14px',
+                borderRadius: '10px',
+                backgroundColor: '#111827',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              View →
+            </a>
           </div>
-        </>
-      )}
+        ))}
+      </section>
     </main>
   )
 }
