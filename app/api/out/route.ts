@@ -1,39 +1,40 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+const MERCHANTS: Record<string, string> = {
+  tatacliq: 'https://www.tatacliq.com/',
+  nykaa: 'https://www.nykaa.com/',
+  adidas: 'https://www.adidas.co.in/',
+  puma: 'https://in.puma.com/',
+  aldo: 'https://www.aldoshoes.com/in/en/',
+  nuawomen: 'https://nuawoman.com/',
+  reliance_digital: 'https://www.reliancedigital.in/',
+  samsung: 'https://www.samsung.com/in/',
+  oneplus: 'https://www.oneplus.in/',
+  croma: 'https://www.croma.com/',
+  organic_mandya: 'https://organicmandya.com/',
+  olivieri_1882: 'https://www.olivieri1882.com/',
+  purenutrition: 'https://purenutrition.in/',
+  kerala_ayurveda: 'https://www.keralaayurveda.biz/',
+  mamaearth: 'https://mamaearth.in/',
+  pepperfry: 'https://www.pepperfry.com/'
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-
   const merchant = searchParams.get('m')
   const query = searchParams.get('q') || ''
 
-  if (!merchant) {
-    return new NextResponse('Missing merchant', { status: 400 })
-  }
-
-  // 🔍 Fetch affiliate partner config
-  const { data, error } = await supabase
-    .from('affiliate_partners')
-    .select('*')
-    .eq('slug', merchant)
-    .eq('is_active', true)
-    .single()
-
-  if (error || !data) {
+  if (!merchant || !MERCHANTS[merchant]) {
     return new NextResponse('Invalid merchant', { status: 400 })
   }
 
-  // 🎯 Build destination URL
-  const destination = query
-    ? `${data.affiliate_base_url}search?q=${encodeURIComponent(query)}`
-    : data.affiliate_base_url
+  const baseUrl = MERCHANTS[merchant]
 
-  // 🔗 Wrap with CueLinks
+  const destination =
+    query
+      ? `${baseUrl}search?q=${encodeURIComponent(query)}`
+      : baseUrl
+
   const cuelinksUrl =
     `https://linksredirect.com/?cid=263419&source=linkkit&url=` +
     encodeURIComponent(destination)
