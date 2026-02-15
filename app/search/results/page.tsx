@@ -12,7 +12,18 @@ type Merchant = {
   affiliate_network: 'affiliate' | 'ondc' | 'local'
 }
 
-function MerchantSection({
+const SECTOR_LABELS: Record<string, string> = {
+  electronics: 'Electronics',
+  apparel_fashion: 'Apparel & Fashion',
+  grocery: 'Grocery',
+  pharmacy: 'Pharmacy',
+  home_services: 'Home Services',
+  mobility: 'Mobility',
+  food: 'Food',
+  beauty_wellness: 'Beauty & Wellness',
+}
+
+function MerchantLayer({
   title,
   merchants,
   query,
@@ -70,11 +81,11 @@ function MerchantSection({
 }
 
 function ResultsContent() {
-  const searchParams = useSearchParams()
+  const params = useSearchParams()
   const router = useRouter()
 
-  const sector = searchParams.get('sector')
-  const query = searchParams.get('q') || ''
+  const query = params.get('q') || ''
+  const sector = params.get('sector') || ''
 
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
@@ -113,16 +124,20 @@ function ResultsContent() {
       </button>
 
       <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
-        Browse {sector?.replace('_', ' ')}
+        Browse {SECTOR_LABELS[sector] || 'Platforms'}
       </h1>
 
       {loading && <div>Loading platforms…</div>}
 
+      {!loading && merchants.length === 0 && (
+        <div>No platforms available yet. Coming soon.</div>
+      )}
+
       {!loading && (
         <>
-          <MerchantSection title="Online platforms" merchants={affiliate} query={query} />
-          <MerchantSection title="ONDC sellers (coming soon)" merchants={ondc} query={query} />
-          <MerchantSection title="Nearby stores (coming soon)" merchants={local} query={query} />
+          <MerchantLayer title="Online platforms" merchants={affiliate} query={query} />
+          <MerchantLayer title="ONDC sellers" merchants={ondc} query={query} />
+          <MerchantLayer title="Nearby stores" merchants={local} query={query} />
         </>
       )}
     </main>
