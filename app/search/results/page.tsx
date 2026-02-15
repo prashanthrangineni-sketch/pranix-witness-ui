@@ -4,94 +4,88 @@ import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
-type Partner = {
+type Merchant = {
   id: string
   slug: string
   display_name: string
   sector: string
+  affiliate_network: 'affiliate' | 'ondc' | 'local'
 }
 
-function isLikelyProduct(query: string) {
+function detectSector(query: string) {
   const q = query.toLowerCase()
 
-  if (/\d/.test(q)) return true
-  if (q.includes('gb') || q.includes('inch')) return true
+  if (['iphone', 'samsung', 'mobile', 'laptop'].some(k => q.includes(k)))
+    return 'electronics'
+  if (['dress', 'shirt', 'jeans', 'fashion'].some(k => q.includes(k)))
+    return 'fashion'
+  if (['biryani', 'food', 'restaurant'].some(k => q.includes(k)))
+    return 'food'
 
-  const brands = [
-    'iphone',
-    'samsung',
-    'oneplus',
-    'xiaomi',
-    'nike',
-    'adidas',
-    'puma',
-    'sony',
-    'lg',
-  ]
-
-  return brands.some((b) => q.includes(b))
+  return 'fashion' // safe default
 }
 
-function MerchantList({ query }: { query: string }) {
-  const [partners, setPartners] = useState<Partner[]>([])
-  const [loading, setLoading] = useState(true)
+function isProductQuery(query: string) {
+  return /\d/.test(query) || query.split(' ').length >= 2
+}
 
-  useEffect(() => {
-    async function loadPartners() {
-      const { data } = await supabase
-        .from('affiliate_partners')
-        .select('id, slug, display_name, sector')
-        .eq('is_active', true)
-
-      setPartners(data || [])
-      setLoading(false)
-    }
-
-    loadPartners()
-  }, [])
-
-  if (loading) {
-    return <div>Loading sellers…</div>
-  }
+function MerchantLayer({
+  title,
+  merchants,
+  query,
+}: {
+  title: string
+  merchants: Merchant[]
+  query: string
+}) {
+  if (merchants.length === 0) return null
 
   return (
-    <section style={{ display: 'grid', gap: '12px' }}>
-      {partners.map((p) => (
-        <div
-          key={p.id}
-          style={{
-            background: '#ffffff',
-            border: '1px solid #e5e7eb',
-            borderRadius: '14px',
-            padding: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div>
-            <div style={{ fontWeight: 700 }}>{p.display_name}</div>
-            <div style={{ fontSize: '13px', color: '#6b7280' }}>
-              Online platform
-            </div>
-          </div>
+    <section style={{ marginBottom: 24 }}>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>
+        {title}
+      </h2>
 
-          <a
-            href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
+      <div style={{ display: 'grid', gap: 12 }}>
+        {merchants.map(m => (
+          <div
+            key={m.id}
             style={{
-              padding: '10px 14px',
-              borderRadius: '10px',
-              backgroundColor: '#111827',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 600,
-              textDecoration: 'none',
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 14,
+              padding: 16,
+              display: 'flex',
+              justifyContent: 'space-between',
             }}
           >
-            View on {p.display_name} →
-          </a>
-        </div>
-      ))}
+            <div>
+              <div style={{ fontWeight: 700 }}>{m.display_name}</div>
+              <div style={{ fontSize: 13, color: '#6b7280' }}>
+                {m.affiliate_network === 'affiliate'
+                  ? 'Online platform'
+                  : m.affiliate_network === 'ondc'
+                  ? 'ONDC seller'
+                  : 'Nearby store'}
+              </div>
+            </div>
+
+            <a
+              href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: '#111827',
+                color: '#fff',
+                fontWeight: 600,
+                textDecoration: 'none',
+              }}
+            >
+              View →
+            </a>
+          </div>
+        ))}
+      </div>
     </section>
   )
 }
@@ -101,57 +95,55 @@ function ResultsContent() {
   const router = useRouter()
   const query = searchParams.get('q') || ''
 
-  const isProduct = useMemo(() => isLikelyProduct(query), [query])
+  const sector = useMemo(() => detectSector(query), [query])
+  const productLike = useMemo(() => isProductQuery(query), [query])
+
+  const [merchants, setMerchants] = useState<Merchant[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const { data } = await supabase
+        .from('affiliate_partners')
+        .select('*')
+        .eq('is_active', true)
+        .eq('sector', sector) // 🔒 HARD LOCK
+
+      setMerchants(data || [])
+      setLoading(false)
+    }
+
+    load()
+  }, [sector])
+
+  const affiliate = merchants.filter(m => m.affiliate_network === 'affiliate')
+  const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
+  const local = merchants.filter(m => m.affiliate_network === 'local')
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-        <button
-          onClick={() => router.push('/search')}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '20px',
-            cursor: 'pointer',
-          }}
-        >
-          ←
-        </button>
-
-        <h1 style={{ fontSize: '18px', fontWeight: 700 }}>
-          {isProduct
-            ? `Compare sellers for “${query}”`
-            : `Explore platforms for “${query}”`}
-        </h1>
-      </div>
-
-      {/* TRUST MESSAGE */}
-      <div
-        style={{
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          borderRadius: '14px',
-          padding: '14px',
-          fontSize: '14px',
-          color: '#6b7280',
-          marginBottom: '20px',
-        }}
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
+      <button
+        onClick={() => router.push('/search')}
+        style={{ background: 'none', border: 'none', fontSize: 20 }}
       >
-        {isProduct ? (
-          <>
-            We show platforms where this product may be available.
-            Prices and checkout happen on the seller’s website.
-          </>
-        ) : (
-          <>
-            Browse platforms and stores where this category is available.
-            You’ll be redirected to view products and prices.
-          </>
-        )}
-      </div>
+        ←
+      </button>
 
-      <MerchantList query={query} />
+      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
+        {productLike
+          ? `Compare sellers for “${query}”`
+          : `Browse ${sector} platforms`}
+      </h1>
+
+      {loading && <div>Loading platforms…</div>}
+
+      {!loading && (
+        <>
+          <MerchantLayer title="Online platforms" merchants={affiliate} query={query} />
+          <MerchantLayer title="ONDC sellers" merchants={ondc} query={query} />
+          <MerchantLayer title="Nearby stores" merchants={local} query={query} />
+        </>
+      )}
     </main>
   )
 }
