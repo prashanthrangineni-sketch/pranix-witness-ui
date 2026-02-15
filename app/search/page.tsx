@@ -3,64 +3,67 @@
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-const CHIPS = [
-  'Food',
-  'Grocery',
-  'Pharmacy',
-  'Electronics',
-  'Fashion',
-  'Mobility',
-  'Home services',
-]
+function resolveSector(query: string) {
+  const q = query.toLowerCase()
+
+  if (['iphone', 'samsung', 'mobile', 'laptop', 'tv'].some(k => q.includes(k)))
+    return 'electronics'
+
+  if (['shoes', 'dress', 'shirt', 'jeans', 'fashion', 'running'].some(k => q.includes(k)))
+    return 'apparel_fashion'
+
+  if (['medicine', 'tablet', 'pharmacy', 'paracetamol'].some(k => q.includes(k)))
+    return 'pharmacy'
+
+  if (['milk', 'rice', 'vegetables', 'grocery'].some(k => q.includes(k)))
+    return 'grocery'
+
+  if (['cab', 'taxi', 'bike', 'ride'].some(k => q.includes(k)))
+    return 'mobility'
+
+  if (['salon', 'spa', 'beauty', 'wellness'].some(k => q.includes(k)))
+    return 'beauty_wellness'
+
+  if (['repair', 'cleaning', 'plumber', 'electrician'].some(k => q.includes(k)))
+    return 'home_services'
+
+  return null
+}
 
 export default function SearchPage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
 
-  function goToResults(value: string) {
-    if (!value.trim()) return
-    router.push(`/search/results?q=${encodeURIComponent(value)}`)
+  function submitSearch() {
+    if (!query.trim()) return
+
+    const sector = resolveSector(query)
+
+    if (!sector) {
+      alert('Please try a more specific search')
+      return
+    }
+
+    router.push(
+      `/search/results?sector=${sector}&q=${encodeURIComponent(query)}`
+    )
   }
 
   return (
-    <div style={{ padding: '16px', maxWidth: '720px', margin: '0 auto' }}>
-      {/* SEARCH BAR */}
+    <div style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
       <input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') goToResults(query)
-        }}
-        placeholder="Search products, brands, services…"
+        onChange={e => setQuery(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && submitSearch()}
+        placeholder="Search products, brands, services"
         style={{
           width: '100%',
-          padding: '14px',
-          borderRadius: '14px',
+          padding: 14,
+          borderRadius: 12,
           border: '1px solid #e5e7eb',
-          fontSize: '15px',
+          fontSize: 16,
         }}
       />
-
-      {/* CATEGORY CHIPS */}
-      <div style={{ display: 'flex', gap: '8px', marginTop: '16px', overflowX: 'auto' }}>
-        {CHIPS.map((chip) => (
-          <div
-            key={chip}
-            onClick={() => goToResults(chip)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '999px',
-              border: '1px solid #e5e7eb',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              background: '#fff',
-            }}
-          >
-            {chip}
-          </div>
-        ))}
-      </div>
     </div>
   )
 }
