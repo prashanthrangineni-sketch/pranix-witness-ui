@@ -13,9 +13,8 @@ type Merchant = {
 }
 
 /* -------------------------
-   1. QUERY CLASSIFICATION
+   1. PRODUCT VS INTENT
 -------------------------- */
-
 function isProductLike(query: string) {
   if (/\d/.test(query)) return true
   if (query.trim().split(' ').length >= 2) return true
@@ -24,53 +23,43 @@ function isProductLike(query: string) {
 
 /* -------------------------
    2. SECTOR RESOLUTION
-   (LOCKED MAP)
+   (MATCHES SUPABASE EXACTLY)
 -------------------------- */
-
-function resolveSector(query: string) {
+function resolveSector(query: string): string | null {
   const q = query.toLowerCase()
 
   if (['iphone', 'samsung', 'mobile', 'laptop', 'tv'].some(k => q.includes(k)))
     return 'electronics'
 
-  if (['dress', 'shirt', 'jeans', 'shoes', 'western', 'fashion'].some(k => q.includes(k)))
+  if (['shoes', 'shirt', 'dress', 'jeans', 'fashion', 'wear'].some(k => q.includes(k)))
     return 'apparel_fashion'
 
-  if (['biryani', 'pizza', 'restaurant', 'food'].some(k => q.includes(k)))
-    return 'food'
-
-  if (['grocery', 'vegetables', 'fruits'].some(k => q.includes(k)))
+  if (['grocery', 'vegetable', 'fruit', 'atta', 'rice'].some(k => q.includes(k)))
     return 'grocery'
 
-  if (['medicine', 'tablet', 'pharmacy'].some(k => q.includes(k)))
+  if (['medicine', 'tablet', 'pharmacy', 'drug'].some(k => q.includes(k)))
     return 'pharmacy'
 
-  if (['salon', 'spa', 'beauty', 'wellness'].some(k => q.includes(k)))
-    return 'beauty_wellness'
+  if (['repair', 'cleaning', 'plumber', 'service'].some(k => q.includes(k)))
+    return 'home_services'
 
   if (['cab', 'taxi', 'bike', 'ride'].some(k => q.includes(k)))
     return 'mobility'
 
-  if (['repair', 'service', 'cleaning', 'plumber'].some(k => q.includes(k)))
-    return 'home_services'
-
-  return null // fallback
+  return null
 }
 
 /* -------------------------
-   3. MERCHANT LAYER UI
+   3. MERCHANT LAYER
 -------------------------- */
-
 function MerchantLayer({
   title,
   merchants,
   query,
-  cta,
 }: {
   title: string
   merchants: Merchant[]
   query: string
-  cta: string
 }) {
   if (merchants.length === 0) return null
 
@@ -85,7 +74,7 @@ function MerchantLayer({
           <div
             key={m.id}
             style={{
-              background: '#fff',
+              background: '#ffffff',
               border: '1px solid #e5e7eb',
               borderRadius: 14,
               padding: 16,
@@ -106,12 +95,12 @@ function MerchantLayer({
                 padding: '10px 14px',
                 borderRadius: 10,
                 background: '#111827',
-                color: '#fff',
+                color: '#ffffff',
                 fontWeight: 600,
                 textDecoration: 'none',
               }}
             >
-              {cta} →
+              View prices →
             </a>
           </div>
         ))}
@@ -123,7 +112,6 @@ function MerchantLayer({
 /* -------------------------
    4. RESULTS PAGE
 -------------------------- */
-
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -147,7 +135,7 @@ function ResultsContent() {
         .from('affiliate_partners')
         .select('id, slug, display_name, sector, affiliate_network')
         .eq('is_active', true)
-        .eq('sector', sector)
+        .eq('sector', sector) // 🔒 HARD LOCK
 
       setMerchants(data || [])
       setLoading(false)
@@ -170,35 +158,20 @@ function ResultsContent() {
       </button>
 
       <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
-        {productLike
+        {productLike && sector
           ? `Compare sellers for “${query}”`
           : sector
           ? `Browse ${sector.replace('_', ' ')}`
-          : `Browse platforms`}
+          : 'Browse platforms'}
       </h1>
 
       {loading && <div>Loading platforms…</div>}
 
       {!loading && (
         <>
-          <MerchantLayer
-            title="Online platforms"
-            merchants={affiliate}
-            query={query}
-            cta={productLike ? 'View prices' : 'Explore'}
-          />
-          <MerchantLayer
-            title="ONDC sellers"
-            merchants={ondc}
-            query={query}
-            cta={productLike ? 'View prices' : 'Explore'}
-          />
-          <MerchantLayer
-            title="Nearby stores"
-            merchants={local}
-            query={query}
-            cta={productLike ? 'View prices' : 'Explore'}
-          />
+          <MerchantLayer title="Online platforms" merchants={affiliate} query={query} />
+          <MerchantLayer title="ONDC sellers" merchants={ondc} query={query} />
+          <MerchantLayer title="Nearby stores" merchants={local} query={query} />
         </>
       )}
     </main>
