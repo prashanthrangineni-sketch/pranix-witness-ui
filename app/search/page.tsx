@@ -1,114 +1,198 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabaseClient'
 
-const CHIPS = [
-  'Food',
-  'Grocery',
-  'Pharmacy',
-  'Electronics',
-  'Fashion',
-  'Mobility',
-  'Home services',
+type Partner = {
+  id: string
+  slug: string
+  display_name: string
+  sector: string
+  affiliate_network: string
+}
+
+const SECTORS = [
+  'all',
+  'fashion',
+  'electronics',
+  'food',
+  'grocery',
+  'pharmacy',
+  'mobility',
+  'home services',
 ]
 
-export default function SearchPage() {
-  const router = useRouter()
-  const [query, setQuery] = useState('')
-  const [activeChip, setActiveChip] = useState<string | null>(null)
+// 🔍 SIMPLE KEYWORD → SECTOR MAP (SAFE)
+function detectSector(query: string) {
+  const q = query.toLowerCase()
 
-  function goToResults(value: string) {
-    if (!value.trim()) return
-    router.push(`/search/results?q=${encodeURIComponent(value)}`)
+  if (q.match(/shirt|dress|jeans|western|fashion|wear/)) return 'fashion'
+  if (q.match(/iphone|mobile|laptop|tv|electronics|tablet/)) return 'electronics'
+  if (q.match(/biryani|pizza|food|restaurant/)) return 'food'
+  if (q.match(/grocery|milk|rice|oil/)) return 'grocery'
+  if (q.match(/medicine|tablet|paracetamol|pharmacy/)) return 'pharmacy'
+  if (q.match(/cab|taxi|ride|mobility/)) return 'mobility'
+
+  return 'all'
+}
+
+function MerchantLogo({ name, slug }: { name: string; slug: string }) {
+  const [error, setError] = useState(false)
+
+  if (error) {
+    const initials = name
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+
+    return (
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: '50%',
+          background: '#111827',
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontWeight: 700,
+        }}
+      >
+        {initials}
+      </div>
+    )
   }
 
   return (
-    <div style={{ padding: '16px', maxWidth: '720px', margin: '0 auto' }}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '14px',
-        }}
-      >
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '20px',
-            cursor: 'pointer',
-          }}
-        >
-          ←
-        </button>
-
-        <input
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value)
-            setActiveChip(null)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              goToResults(query)
-            }
-          }}
-          placeholder="Search products, brands, services…"
-          style={{
-            flex: 1,
-            padding: '12px 14px',
-            borderRadius: '12px',
-            border: '1px solid #e5e7eb',
-            fontSize: '15px',
-          }}
-        />
-      </div>
-
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          paddingBottom: '6px',
-          marginBottom: '18px',
-        }}
-      >
-        {CHIPS.map((chip) => {
-          const active = chip === activeChip
-          return (
-            <div
-              key={chip}
-              onClick={() => {
-                setActiveChip(chip)
-                setQuery(chip)
-                goToResults(chip)
-              }}
-              style={{
-                padding: '7px 16px',
-                borderRadius: '999px',
-                fontSize: '13px',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                cursor: 'pointer',
-                border: active
-                  ? '1px solid #111827'
-                  : '1px solid #e5e7eb',
-                backgroundColor: active ? '#111827' : '#ffffff',
-                color: active ? '#ffffff' : '#111827',
-              }}
-            >
-              {chip}
-            </div>
-          )
-        })}
-      </div>
-
-      <div style={{ color: '#6b7280', fontSize: '14px' }}>
-        Type a search and press Enter, or choose a category
-      </div>
-    </div>
+    <img
+      src={`/brand/logos/${slug}.png`}
+      alt={name}
+      width={44}
+      height={44}
+      style={{ borderRadius: 10, objectFit: 'contain' }}
+      onError={() => setError(true)}
+    />
   )
 }
+
+function ResultsContent() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const query = searchParams.get('q') || ''
+
+  const [partners, setPartners] = useState<Partner[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedSector, setSelectedSector] = useState('all')
+
+  useEffect(() => {
+    const autoSector = detectSector(query)
+    setSelectedSector(autoSector)
+    fetchPartners()
+  }, [query])
+
+  async function fetchPartners() {
+    const { data } = await supabase
+      .from('affiliate_partners')
+      .select('id, slug, display_name, sector, affiliate_network')
+      .eq('is_active', true)
+
+    if (data) setPartners(data)
+    setLoading(false)
+  }
+
+  const visiblePartners =
+    selectedSector === 'all'
+      ? partners
+      : partners.filter(
+          (p) => p.sector?.toLowerCase() === selectedSector
+        )
+
+  return (
+    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
+      {/* HEADER */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
+        <button onClick={() => router.push('/search')}>←</button>
+        <h1 style={{ fontSize: 18, fontWeight: 700 }}>
+          Results for “{query}”
+        </h1>
+      </div>
+
+      {/* SECTOR FILTER */}
+      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 20 }}>
+        {SECTORS.map((s) => (
+          <div
+            key={s}
+            onClick={() => setSelectedSector(s)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 999,
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+              background: s === selectedSector ? '#111827' : '#fff',
+              color: s === selectedSector ? '#fff' : '#111827',
+              border: '1px solid #e5e7eb',
+              textTransform: 'capitalize',
+            }}
+          >
+            {s}
+          </div>
+        ))}
+      </div>
+
+      {loading && <div>Loading platforms…</div>}
+
+      {!loading &&
+        visiblePartners.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              background: '#fff',
+              border: '1px solid #e5e7eb',
+              borderRadius: 14,
+              padding: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+            }}
+          >
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <MerchantLogo name={p.display_name} slug={p.slug} />
+              <div>
+                <div style={{ fontWeight: 700 }}>{p.display_name}</div>
+                <div style={{ fontSize: 13, color: '#6b7280' }}>
+                  {p.sector}
+                </div>
+              </div>
+            </div>
+
+            <a
+              href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 10,
+                background: '#111827',
+                color: '#fff',
+                textDecoration: 'none',
+                fontWeight: 600,
+              }}
+            >
+              View →
+            </a>
+          </div>
+        ))}
+    </main>
+  )
+}
+
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
+      <ResultsContent />
+    </Suspense>
+  )
+        }
