@@ -3,13 +3,13 @@
 import { useRouter } from 'next/navigation'
 
 const SECTORS = [
-  { label: 'Food', icon: '🍔', query: 'food', bg: '#fff7ed' },
-  { label: 'Grocery', icon: '🛒', query: 'grocery', bg: '#ecfeff' },
-  { label: 'Pharmacy', icon: '💊', query: 'pharmacy', bg: '#f0fdf4' },
-  { label: 'Electronics', icon: '📱', query: 'electronics', bg: '#f5f3ff' },
-  { label: 'Fashion', icon: '👕', query: 'fashion', bg: '#fff1f2' },
-  { label: 'Home Services', icon: '🛠️', query: 'home services', bg: '#fffbeb' },
-  { label: 'Mobility', icon: '🚕', query: 'mobility', bg: '#eef2ff' },
+  { label: 'Food', icon: '🍔', sector: 'food', bg: '#fff7ed' },
+  { label: 'Grocery', icon: '🛒', sector: 'grocery', bg: '#ecfeff' },
+  { label: 'Pharmacy', icon: '💊', sector: 'pharmacy', bg: '#f0fdf4' },
+  { label: 'Electronics', icon: '📱', sector: 'electronics', bg: '#f5f3ff' },
+  { label: 'Fashion', icon: '👕', sector: 'fashion', bg: '#fff1f2' },
+  { label: 'Home Services', icon: '🛠️', sector: 'home_services', bg: '#fffbeb' },
+  { label: 'Mobility', icon: '🚕', sector: 'mobility', bg: '#eef2ff' },
 ]
 
 export default function SectorGrid() {
@@ -17,13 +17,7 @@ export default function SectorGrid() {
 
   return (
     <section style={{ marginBottom: '36px' }}>
-      <h2
-        style={{
-          fontSize: '18px',
-          fontWeight: 700,
-          marginBottom: '16px',
-        }}
-      >
+      <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px' }}>
         Explore categories
       </h2>
 
@@ -38,7 +32,7 @@ export default function SectorGrid() {
           <div
             key={s.label}
             onClick={() =>
-              router.push(`/search?q=${encodeURIComponent(s.query)}`)
+              router.push(`/search/results?sector=${s.sector}`)
             }
             style={{
               backgroundColor: s.bg,
@@ -53,12 +47,7 @@ export default function SectorGrid() {
             <div style={{ fontSize: '28px', marginBottom: '8px' }}>
               {s.icon}
             </div>
-            <div
-              style={{
-                fontSize: '14px',
-                fontWeight: 600,
-              }}
-            >
+            <div style={{ fontSize: '14px', fontWeight: 600 }}>
               {s.label}
             </div>
           </div>
