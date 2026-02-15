@@ -20,17 +20,19 @@ const SECTORS = [
   'grocery',
   'pharmacy',
   'mobility',
-  'home services',
+  'home_services',
 ]
 
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
+
   const query = searchParams.get('q') || ''
+  const sectorFromUrl = searchParams.get('sector') || 'all'
 
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedSector, setSelectedSector] = useState('all')
+  const [selectedSector, setSelectedSector] = useState(sectorFromUrl)
 
   useEffect(() => {
     fetchPartners()
@@ -58,62 +60,44 @@ function ResultsContent() {
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
       {/* HEADER */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '20px',
-        }}
-      >
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <button
-          onClick={() => router.push('/search')}
-          style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '20px',
-            cursor: 'pointer',
-          }}
+          onClick={() => router.push('/')}
+          style={{ background: 'none', border: 'none', fontSize: '20px' }}
         >
           ←
         </button>
 
         <h1 style={{ fontSize: '18px', fontWeight: 700 }}>
-          Results for “{query}”
+          {selectedSector === 'all'
+            ? query
+              ? `Results for “${query}”`
+              : 'All platforms'
+            : `${selectedSector.replace('_', ' ')} platforms`}
         </h1>
       </div>
 
       {/* SECTOR FILTER */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '8px',
-          overflowX: 'auto',
-          marginBottom: '20px',
-        }}
-      >
-        {SECTORS.map((sector) => {
-          const active = sector === selectedSector
+      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
+        {SECTORS.map((s) => {
+          const active = s === selectedSector
           return (
             <div
-              key={sector}
-              onClick={() => setSelectedSector(sector)}
+              key={s}
+              onClick={() => setSelectedSector(s)}
               style={{
                 padding: '6px 14px',
                 borderRadius: '999px',
                 fontSize: '13px',
                 fontWeight: 600,
-                whiteSpace: 'nowrap',
                 cursor: 'pointer',
-                border: active
-                  ? '1px solid #111827'
-                  : '1px solid #e5e7eb',
+                border: active ? '1px solid #111827' : '1px solid #e5e7eb',
                 backgroundColor: active ? '#111827' : '#ffffff',
                 color: active ? '#ffffff' : '#111827',
                 textTransform: 'capitalize',
               }}
             >
-              {sector}
+              {s.replace('_', ' ')}
             </div>
           )
         })}
@@ -139,7 +123,7 @@ function ResultsContent() {
       {loading && <div>Loading platforms…</div>}
 
       {!loading && visiblePartners.length === 0 && (
-        <div>No platforms available for this sector.</div>
+        <div>No platforms available.</div>
       )}
 
       <section style={{ display: 'grid', gap: '12px' }}>
@@ -152,14 +136,14 @@ function ResultsContent() {
               borderRadius: '14px',
               padding: '16px',
               display: 'flex',
-              alignItems: 'center',
               justifyContent: 'space-between',
+              alignItems: 'center',
             }}
           >
             <div>
               <div style={{ fontWeight: 700 }}>{p.display_name}</div>
               <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                {p.sector} · {p.affiliate_network}
+                {p.sector.replace('_', ' ')} · online store
               </div>
             </div>
 
