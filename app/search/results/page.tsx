@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 type Partner = {
@@ -12,157 +12,95 @@ type Partner = {
   affiliate_network: string
 }
 
-const SECTORS = [
-  'all',
-  'fashion',
-  'electronics',
-  'food',
-  'grocery',
-  'pharmacy',
-  'mobility',
-  'home_services',
-]
-
 function ResultsContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
-
   const query = searchParams.get('q') || ''
-  const sectorFromUrl = searchParams.get('sector') || 'all'
 
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedSector, setSelectedSector] = useState(sectorFromUrl)
 
   useEffect(() => {
     fetchPartners()
   }, [])
 
   async function fetchPartners() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('affiliate_partners')
-      .select('id, slug, display_name, sector, affiliate_network')
+      .select('*')
       .eq('is_active', true)
 
-    if (!error && data) {
-      setPartners(data)
-    }
+    setPartners(data || [])
     setLoading(false)
   }
 
-  const visiblePartners =
-    selectedSector === 'all'
-      ? partners
-      : partners.filter(
-          (p) => p.sector?.toLowerCase() === selectedSector
-        )
+  const online = partners.filter(p => p.affiliate_network === 'cuelinks')
 
   return (
-    <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
-      {/* HEADER */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-        <button
-          onClick={() => router.push('/')}
-          style={{ background: 'none', border: 'none', fontSize: '20px' }}
-        >
-          ←
-        </button>
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
+        Results for “{query}”
+      </h1>
 
-        <h1 style={{ fontSize: '18px', fontWeight: 700 }}>
-          {selectedSector === 'all'
-            ? query
-              ? `Results for “${query}”`
-              : 'All platforms'
-            : `${selectedSector.replace('_', ' ')} platforms`}
-        </h1>
-      </div>
-
-      {/* SECTOR FILTER */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', marginBottom: '20px' }}>
-        {SECTORS.map((s) => {
-          const active = s === selectedSector
-          return (
-            <div
-              key={s}
-              onClick={() => setSelectedSector(s)}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '999px',
-                fontSize: '13px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                border: active ? '1px solid #111827' : '1px solid #e5e7eb',
-                backgroundColor: active ? '#111827' : '#ffffff',
-                color: active ? '#ffffff' : '#111827',
-                textTransform: 'capitalize',
-              }}
-            >
-              {s.replace('_', ' ')}
-            </div>
-          )
-        })}
-      </div>
-
-      {/* INFO */}
-      <div
-        style={{
-          padding: '14px',
-          borderRadius: '14px',
-          background: '#ffffff',
-          border: '1px solid #e5e7eb',
-          color: '#6b7280',
-          fontSize: '14px',
-          marginBottom: '20px',
-        }}
-      >
-        Showing platforms where this item may be available.
-        Prices and checkout happen on the merchant site.
-      </div>
-
-      {/* RESULTS */}
       {loading && <div>Loading platforms…</div>}
 
-      {!loading && visiblePartners.length === 0 && (
-        <div>No platforms available.</div>
-      )}
+      {/* ONLINE STORES */}
+      <section>
+        <h2 style={{ fontSize: 16, fontWeight: 700 }}>🛍 Online stores</h2>
+        <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+          Brand websites & large marketplaces
+        </p>
 
-      <section style={{ display: 'grid', gap: '12px' }}>
-        {visiblePartners.map((p) => (
+        {online.map(p => (
           <div
             key={p.id}
             style={{
-              background: '#ffffff',
               border: '1px solid #e5e7eb',
-              borderRadius: '14px',
-              padding: '16px',
+              borderRadius: 14,
+              padding: 16,
+              marginBottom: 12,
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              background: '#fff'
             }}
           >
             <div>
-              <div style={{ fontWeight: 700 }}>{p.display_name}</div>
-              <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                {p.sector.replace('_', ' ')} · online store
-              </div>
+              <strong>{p.display_name}</strong>
+              <div style={{ fontSize: 12, color: '#6b7280' }}>{p.sector}</div>
             </div>
 
             <a
               href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
               style={{
                 padding: '10px 14px',
-                borderRadius: '10px',
-                backgroundColor: '#111827',
-                color: '#ffffff',
-                fontSize: '14px',
-                fontWeight: 600,
+                borderRadius: 10,
+                background: '#111827',
+                color: '#fff',
+                fontSize: 14,
                 textDecoration: 'none',
+                fontWeight: 600
               }}
             >
-              View →
+              View prices →
             </a>
           </div>
         ))}
+      </section>
+
+      {/* ONDC */}
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700 }}>🌐 ONDC sellers</h2>
+        <p style={{ fontSize: 13, color: '#6b7280' }}>
+          Government-backed open commerce (coming soon)
+        </p>
+      </section>
+
+      {/* LOCAL */}
+      <section style={{ marginTop: 32 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700 }}>📍 Nearby stores</h2>
+        <p style={{ fontSize: 13, color: '#6b7280' }}>
+          Shops near you (coming soon)
+        </p>
       </section>
     </main>
   )
@@ -170,7 +108,7 @@ function ResultsContent() {
 
 export default function SearchResultsPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24 }}>Loading results…</div>}>
+    <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
       <ResultsContent />
     </Suspense>
   )
