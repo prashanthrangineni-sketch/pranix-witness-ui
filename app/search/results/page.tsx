@@ -12,31 +12,65 @@ type Merchant = {
   affiliate_network: 'affiliate' | 'ondc' | 'local'
 }
 
-function detectSector(query: string) {
+/* -------------------------
+   1. QUERY CLASSIFICATION
+-------------------------- */
+
+function isProductLike(query: string) {
+  if (/\d/.test(query)) return true
+  if (query.trim().split(' ').length >= 2) return true
+  return false
+}
+
+/* -------------------------
+   2. SECTOR RESOLUTION
+   (LOCKED MAP)
+-------------------------- */
+
+function resolveSector(query: string) {
   const q = query.toLowerCase()
 
-  if (['iphone', 'samsung', 'mobile', 'laptop'].some(k => q.includes(k)))
+  if (['iphone', 'samsung', 'mobile', 'laptop', 'tv'].some(k => q.includes(k)))
     return 'electronics'
-  if (['dress', 'shirt', 'jeans', 'fashion'].some(k => q.includes(k)))
-    return 'fashion'
-  if (['biryani', 'food', 'restaurant'].some(k => q.includes(k)))
+
+  if (['dress', 'shirt', 'jeans', 'shoes', 'western', 'fashion'].some(k => q.includes(k)))
+    return 'apparel_fashion'
+
+  if (['biryani', 'pizza', 'restaurant', 'food'].some(k => q.includes(k)))
     return 'food'
 
-  return 'fashion' // safe default
+  if (['grocery', 'vegetables', 'fruits'].some(k => q.includes(k)))
+    return 'grocery'
+
+  if (['medicine', 'tablet', 'pharmacy'].some(k => q.includes(k)))
+    return 'pharmacy'
+
+  if (['salon', 'spa', 'beauty', 'wellness'].some(k => q.includes(k)))
+    return 'beauty_wellness'
+
+  if (['cab', 'taxi', 'bike', 'ride'].some(k => q.includes(k)))
+    return 'mobility'
+
+  if (['repair', 'service', 'cleaning', 'plumber'].some(k => q.includes(k)))
+    return 'home_services'
+
+  return null // fallback
 }
 
-function isProductQuery(query: string) {
-  return /\d/.test(query) || query.split(' ').length >= 2
-}
+/* -------------------------
+   3. MERCHANT LAYER UI
+-------------------------- */
 
 function MerchantLayer({
   title,
   merchants,
   query,
+  cta,
 }: {
   title: string
   merchants: Merchant[]
   query: string
+  cta: string
 }) {
   if (merchants.length === 0) return null
 
@@ -62,11 +96,7 @@ function MerchantLayer({
             <div>
               <div style={{ fontWeight: 700 }}>{m.display_name}</div>
               <div style={{ fontSize: 13, color: '#6b7280' }}>
-                {m.affiliate_network === 'affiliate'
-                  ? 'Online platform'
-                  : m.affiliate_network === 'ondc'
-                  ? 'ONDC seller'
-                  : 'Nearby store'}
+                {title}
               </div>
             </div>
 
@@ -81,7 +111,7 @@ function MerchantLayer({
                 textDecoration: 'none',
               }}
             >
-              View →
+              {cta} →
             </a>
           </div>
         ))}
@@ -90,24 +120,34 @@ function MerchantLayer({
   )
 }
 
+/* -------------------------
+   4. RESULTS PAGE
+-------------------------- */
+
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('q') || ''
 
-  const sector = useMemo(() => detectSector(query), [query])
-  const productLike = useMemo(() => isProductQuery(query), [query])
+  const productLike = useMemo(() => isProductLike(query), [query])
+  const sector = useMemo(() => resolveSector(query), [query])
 
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function load() {
+      if (!sector) {
+        setMerchants([])
+        setLoading(false)
+        return
+      }
+
       const { data } = await supabase
         .from('affiliate_partners')
-        .select('*')
+        .select('id, slug, display_name, sector, affiliate_network')
         .eq('is_active', true)
-        .eq('sector', sector) // 🔒 HARD LOCK
+        .eq('sector', sector)
 
       setMerchants(data || [])
       setLoading(false)
@@ -132,16 +172,33 @@ function ResultsContent() {
       <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
         {productLike
           ? `Compare sellers for “${query}”`
-          : `Browse ${sector} platforms`}
+          : sector
+          ? `Browse ${sector.replace('_', ' ')}`
+          : `Browse platforms`}
       </h1>
 
       {loading && <div>Loading platforms…</div>}
 
       {!loading && (
         <>
-          <MerchantLayer title="Online platforms" merchants={affiliate} query={query} />
-          <MerchantLayer title="ONDC sellers" merchants={ondc} query={query} />
-          <MerchantLayer title="Nearby stores" merchants={local} query={query} />
+          <MerchantLayer
+            title="Online platforms"
+            merchants={affiliate}
+            query={query}
+            cta={productLike ? 'View prices' : 'Explore'}
+          />
+          <MerchantLayer
+            title="ONDC sellers"
+            merchants={ondc}
+            query={query}
+            cta={productLike ? 'View prices' : 'Explore'}
+          />
+          <MerchantLayer
+            title="Nearby stores"
+            merchants={local}
+            query={query}
+            cta={productLike ? 'View prices' : 'Explore'}
+          />
         </>
       )}
     </main>
