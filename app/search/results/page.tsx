@@ -12,12 +12,25 @@ type Partner = {
   affiliate_network: string
 }
 
+const SECTORS = [
+  'all',
+  'fashion',
+  'electronics',
+  'food',
+  'grocery',
+  'pharmacy',
+  'mobility',
+  'home services',
+]
+
 function ResultsContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const query = searchParams.get('q') || ''
+
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedSector, setSelectedSector] = useState('all')
 
   useEffect(() => {
     fetchPartners()
@@ -34,6 +47,13 @@ function ResultsContent() {
     }
     setLoading(false)
   }
+
+  const visiblePartners =
+    selectedSector === 'all'
+      ? partners
+      : partners.filter(
+          (p) => p.sector?.toLowerCase() === selectedSector
+        )
 
   return (
     <main style={{ maxWidth: '720px', margin: '0 auto', padding: '24px 16px' }}>
@@ -63,32 +83,67 @@ function ResultsContent() {
         </h1>
       </div>
 
+      {/* SECTOR FILTER */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          overflowX: 'auto',
+          marginBottom: '20px',
+        }}
+      >
+        {SECTORS.map((sector) => {
+          const active = sector === selectedSector
+          return (
+            <div
+              key={sector}
+              onClick={() => setSelectedSector(sector)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '999px',
+                fontSize: '13px',
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                border: active
+                  ? '1px solid #111827'
+                  : '1px solid #e5e7eb',
+                backgroundColor: active ? '#111827' : '#ffffff',
+                color: active ? '#ffffff' : '#111827',
+                textTransform: 'capitalize',
+              }}
+            >
+              {sector}
+            </div>
+          )
+        })}
+      </div>
+
       {/* INFO */}
       <div
         style={{
-          padding: '16px',
+          padding: '14px',
           borderRadius: '14px',
           background: '#ffffff',
           border: '1px solid #e5e7eb',
           color: '#6b7280',
           fontSize: '14px',
-          marginBottom: '24px',
+          marginBottom: '20px',
         }}
       >
         Showing platforms where this item may be available.
-        <br />
         Prices and checkout happen on the merchant site.
       </div>
 
       {/* RESULTS */}
       {loading && <div>Loading platforms…</div>}
 
-      {!loading && partners.length === 0 && (
-        <div>No platforms available right now.</div>
+      {!loading && visiblePartners.length === 0 && (
+        <div>No platforms available for this sector.</div>
       )}
 
       <section style={{ display: 'grid', gap: '12px' }}>
-        {partners.map((p) => (
+        {visiblePartners.map((p) => (
           <div
             key={p.id}
             style={{
