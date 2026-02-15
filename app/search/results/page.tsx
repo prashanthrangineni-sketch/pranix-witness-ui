@@ -14,22 +14,28 @@ type Partner = {
 function ResultsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const query = searchParams.get('q') || ''
+  const query = (searchParams.get('q') || '').toLowerCase()
 
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadPartners()
-  }, [])
+    if (query) fetchPartners()
+  }, [query])
 
-  async function loadPartners() {
-    const { data } = await supabase
+  async function fetchPartners() {
+    setLoading(true)
+
+    const { data, error } = await supabase
       .from('affiliate_partners')
       .select('id, slug, display_name, sector')
       .eq('is_active', true)
+      .ilike('sector', query)   // 🔑 THIS IS THE FIX
 
-    if (data) setPartners(data)
+    if (!error && data) {
+      setPartners(data)
+    }
+
     setLoading(false)
   }
 
@@ -44,8 +50,9 @@ function ResultsContent() {
         >
           ←
         </button>
+
         <h1 style={{ fontSize: '18px', fontWeight: 700 }}>
-          Results for “{query}”
+          {query.charAt(0).toUpperCase() + query.slice(1)} platforms
         </h1>
       </div>
 
@@ -61,90 +68,76 @@ function ResultsContent() {
           marginBottom: '24px',
         }}
       >
-        Choose where you want to buy. Prices and checkout happen on the merchant site.
+        Showing platforms for <b>{query}</b>.  
+        Prices and checkout happen on the merchant site.
       </div>
 
       {loading && <div>Loading platforms…</div>}
 
+      {!loading && partners.length === 0 && (
+        <div>No platforms available for this category.</div>
+      )}
+
       {/* ONLINE BRANDS */}
-      <Section
-        title="Online brands"
-        subtitle="Trusted online platforms"
-        partners={partners}
-        query={query}
-      />
+      {!loading && partners.length > 0 && (
+        <section style={{ marginBottom: '28px' }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 700 }}>
+            Online brands
+          </h2>
+          <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
+            Trusted online platforms
+          </div>
+
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {partners.map((p) => (
+              <div
+                key={p.id}
+                style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '14px',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>{p.display_name}</div>
+                  <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                    {p.sector} · Online brand
+                  </div>
+                </div>
+
+                <a
+                  href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    background: '#111827',
+                    color: '#ffffff',
+                    fontSize: '14px',
+                    textDecoration: 'none',
+                  }}
+                >
+                  View prices →
+                </a>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ONDC */}
       <StaticSection
         title="ONDC sellers"
-        subtitle="Government-backed open commerce"
+        subtitle="Government-backed open commerce (coming soon)"
       />
 
       {/* LOCAL */}
       <StaticSection
         title="Nearby stores"
-        subtitle="Shops near you"
+        subtitle="Shops near you (coming soon)"
       />
     </main>
-  )
-}
-
-function Section({
-  title,
-  subtitle,
-  partners,
-  query,
-}: {
-  title: string
-  subtitle: string
-  partners: Partner[]
-  query: string
-}) {
-  if (partners.length === 0) return null
-
-  return (
-    <section style={{ marginBottom: '28px' }}>
-      <h2 style={{ fontSize: '16px', fontWeight: 700 }}>{title}</h2>
-      <div style={{ fontSize: '13px', color: '#6b7280', marginBottom: '12px' }}>
-        {subtitle}
-      </div>
-
-      <div style={{ display: 'grid', gap: '12px' }}>
-        {partners.map((p) => (
-          <div
-            key={p.id}
-            style={{
-              border: '1px solid #e5e7eb',
-              borderRadius: '14px',
-              padding: '16px',
-              display: 'flex',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ fontWeight: 700 }}>{p.display_name}</div>
-              <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                {p.sector} · Online brand
-              </div>
-            </div>
-
-            <a
-              href={`/api/out?m=${p.slug}&q=${encodeURIComponent(query)}`}
-              style={{
-                padding: '10px 14px',
-                borderRadius: '10px',
-                background: '#111827',
-                color: '#ffffff',
-                fontSize: '14px',
-                textDecoration: 'none',
-              }}
-            >
-              View prices →
-            </a>
-          </div>
-        ))}
-      </div>
-    </section>
   )
 }
 
@@ -159,9 +152,6 @@ function StaticSection({
     <section style={{ marginBottom: '28px', opacity: 0.6 }}>
       <h2 style={{ fontSize: '16px', fontWeight: 700 }}>{title}</h2>
       <div style={{ fontSize: '13px', color: '#6b7280' }}>{subtitle}</div>
-      <div style={{ marginTop: '10px', fontSize: '14px', color: '#9ca3af' }}>
-        Coming soon
-      </div>
     </section>
   )
 }
