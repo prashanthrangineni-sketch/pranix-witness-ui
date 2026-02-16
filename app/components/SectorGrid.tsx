@@ -3,43 +3,41 @@
 import { useRouter } from 'next/navigation'
 
 const SECTORS = [
-  { label: 'Food', sector: 'food', icon: '🍔' },
-  { label: 'Grocery', sector: 'grocery', icon: '🛒' },
-  { label: 'Pharmacy', sector: 'pharmacy', icon: '💊' },
-  { label: 'Electronics', sector: 'electronics', icon: '📱' },
-  { label: 'Apparel & Fashion', sector: 'apparel_fashion', icon: '👕' },
-  { label: 'Beauty & Wellness', sector: 'beauty_wellness', icon: '💆' },
-  { label: 'Home Services', sector: 'home_services', icon: '🛠️' },
-  { label: 'Mobility', sector: 'mobility', icon: '🚕' },
+  { label: 'Food', icon: '🍔', value: 'food' },
+  { label: 'Grocery', icon: '🛒', value: 'grocery' },
+  { label: 'Pharmacy', icon: '💊', value: 'pharmacy' },
+  { label: 'Electronics', icon: '📱', value: 'electronics' },
+  { label: 'Apparel & Fashion', icon: '👕', value: 'apparel_fashion' },
+  { label: 'Beauty & Wellness', icon: '💄', value: 'beauty_wellness' },
+  { label: 'Home Services', icon: '🛠️', value: 'home_services' },
+  { label: 'Mobility', icon: '🚕', value: 'mobility' },
 ]
 
 export default function SectorGrid() {
   const router = useRouter()
 
   return (
-    <section>
+    <section style={{ marginBottom: 36 }}>
       <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
         Explore categories
       </h2>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {SECTORS.map(s => (
           <div
-            key={s.sector}
-            onClick={() =>
-              router.push(`/search/results?sector=${s.sector}`)
-            }
+            key={s.value}
+            onClick={() => router.push(`/search/results?sector=${s.value}`)}
             style={{
-              padding: 16,
-              borderRadius: 16,
               border: '1px solid #e5e7eb',
+              borderRadius: 18,
+              padding: 20,
               textAlign: 'center',
               cursor: 'pointer',
               background: '#fff',
             }}
           >
             <div style={{ fontSize: 28 }}>{s.icon}</div>
-            <div style={{ fontWeight: 600 }}>{s.label}</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{s.label}</div>
           </div>
         ))}
       </div>
