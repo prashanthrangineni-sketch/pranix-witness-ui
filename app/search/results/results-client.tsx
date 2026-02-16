@@ -12,9 +12,9 @@ type Merchant = {
   affiliate_network: 'cuelinks' | 'ondc' | 'local'
 }
 
-/* -----------------------------
-   SAFE SECTOR RESOLUTION
------------------------------- */
+/* ---------------------------------
+   SAFE SECTOR DETECTION (NO AI)
+---------------------------------- */
 function resolveSectorFromQuery(q: string | null) {
   if (!q) return null
   const query = q.toLowerCase()
@@ -22,7 +22,7 @@ function resolveSectorFromQuery(q: string | null) {
   if (query.includes('iphone') || query.includes('mobile')) return 'electronics'
   if (query.includes('shirt') || query.includes('shoes')) return 'apparel_fashion'
   if (query.includes('grocery')) return 'grocery'
-  if (query.includes('medicine')) return 'pharmacy'
+  if (query.includes('medicine') || query.includes('pharma')) return 'pharmacy'
   if (query.includes('food')) return 'food'
   if (query.includes('beauty')) return 'beauty_wellness'
   if (query.includes('cab') || query.includes('ride')) return 'mobility'
@@ -30,9 +30,9 @@ function resolveSectorFromQuery(q: string | null) {
   return null
 }
 
-/* -----------------------------
-   UI LAYER
------------------------------- */
+/* ---------------------------------
+   SECTION RENDERER (SAFE)
+---------------------------------- */
 function MerchantSection({
   title,
   merchants,
@@ -42,11 +42,14 @@ function MerchantSection({
   merchants: Merchant[]
   query: string
 }) {
-  if (merchants.length === 0) return null
-
   return (
     <>
       <h2 style={{ marginTop: 24 }}>{title}</h2>
+
+      {merchants.length === 0 && (
+        <div style={{ color: '#6b7280' }}>Coming soon</div>
+      )}
+
       {merchants.map(m => (
         <div
           key={m.id}
@@ -60,27 +63,32 @@ function MerchantSection({
           }}
         >
           <div>{m.display_name}</div>
-          <a
-            href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
-            style={{
-              background: '#111',
-              color: '#fff',
-              padding: '8px 12px',
-              borderRadius: 8,
-              textDecoration: 'none',
-            }}
-          >
-            View →
-          </a>
+
+          {m.affiliate_network === 'cuelinks' ? (
+            <a
+              href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
+              style={{
+                background: '#111',
+                color: '#fff',
+                padding: '8px 12px',
+                borderRadius: 8,
+                textDecoration: 'none',
+              }}
+            >
+              View prices →
+            </a>
+          ) : (
+            <span style={{ color: '#9ca3af' }}>Coming soon</span>
+          )}
         </div>
       ))}
     </>
   )
 }
 
-/* -----------------------------
-   MAIN CLIENT COMPONENT
------------------------------- */
+/* ---------------------------------
+   MAIN PAGE
+---------------------------------- */
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
@@ -115,8 +123,6 @@ export default function ResultsClient() {
   }, [sector])
 
   const online = merchants.filter(m => m.affiliate_network === 'cuelinks')
-  const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
-  const local = merchants.filter(m => m.affiliate_network === 'local')
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
@@ -130,13 +136,25 @@ export default function ResultsClient() {
 
       {!loading && (
         <>
-          <MerchantSection title="Online platforms" merchants={online} query={query} />
-          <MerchantSection title="ONDC (Coming soon)" merchants={ondc} query={query} />
-          <MerchantSection title="Local stores (Coming soon)" merchants={local} query={query} />
+          <MerchantSection
+            title="Online platforms"
+            merchants={online}
+            query={query}
+          />
+
+          <MerchantSection
+            title="ONDC network"
+            merchants={[]}   // intentionally empty
+            query={query}
+          />
+
+          <MerchantSection
+            title="Local merchants"
+            merchants={[]}   // intentionally empty
+            query={query}
+          />
         </>
       )}
-
-      {!loading && merchants.length === 0 && <div>No platforms available</div>}
     </main>
   )
-              }
+}
