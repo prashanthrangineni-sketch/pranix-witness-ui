@@ -9,66 +9,94 @@ type Merchant = {
   slug: string
   display_name: string
   sector: string
-  affiliate_network: string
+  affiliate_network: 'cuelinks' | 'ondc' | 'local'
 }
 
-/* ---------- AUTO SECTOR DETECTION ---------- */
+/* -------------------------
+   QUERY TYPE CHECK
+-------------------------- */
+function isProductLike(query: string) {
+  if (!query) return false
+  if (/\d/.test(query)) return true
+  if (query.trim().split(' ').length >= 2) return true
+  return false
+}
 
-function resolveSector(query: string | null, explicitSector: string | null) {
-  if (explicitSector) return explicitSector
-  if (!query) return null
-
+/* -------------------------
+   SECTOR INFERENCE (SEARCH)
+-------------------------- */
+function inferSector(query: string) {
   const q = query.toLowerCase()
 
-  if (['iphone', 'samsung', 'mobile', 'laptop', 'tv'].some(k => q.includes(k)))
+  if (['iphone', 'mobile', 'laptop', 'tv', 'samsung', 'oneplus'].some(k => q.includes(k)))
     return 'electronics'
-  if (['shoe', 'shirt', 'jeans', 'fashion', 'dress'].some(k => q.includes(k)))
+
+  if (['shirt', 'jeans', 'shoes', 'running', 'fashion', 'dress'].some(k => q.includes(k)))
     return 'apparel_fashion'
+
+  if (['biryani', 'pizza', 'food', 'restaurant'].some(k => q.includes(k)))
+    return 'food'
+
+  if (['grocery', 'vegetables', 'fruits'].some(k => q.includes(k)))
+    return 'grocery'
+
   if (['medicine', 'tablet', 'pharmacy'].some(k => q.includes(k)))
     return 'pharmacy'
-  if (['grocery', 'rice', 'oil'].some(k => q.includes(k)))
-    return 'grocery'
-  if (['salon', 'spa', 'beauty'].some(k => q.includes(k)))
+
+  if (['salon', 'spa', 'beauty', 'wellness'].some(k => q.includes(k)))
     return 'beauty_wellness'
-  if (['cab', 'taxi', 'ride'].some(k => q.includes(k)))
+
+  if (['uber', 'ola', 'cab', 'taxi', 'ride'].some(k => q.includes(k)))
     return 'mobility'
-  if (['repair', 'plumber', 'cleaning'].some(k => q.includes(k)))
+
+  if (['repair', 'plumber', 'cleaning', 'service'].some(k => q.includes(k)))
     return 'home_services'
-  if (['food', 'restaurant', 'biryani'].some(k => q.includes(k)))
-    return 'food'
 
   return null
 }
 
-/* ---------- UI LAYER ---------- */
-
-function MerchantSection({ title, merchants, query }: any) {
+/* -------------------------
+   MERCHANT SECTION
+-------------------------- */
+function MerchantSection({
+  title,
+  merchants,
+  query,
+}: {
+  title: string
+  merchants: Merchant[]
+  query: string
+}) {
   if (merchants.length === 0) return null
 
   return (
     <section style={{ marginBottom: 24 }}>
-      <h3 style={{ fontWeight: 700, marginBottom: 12 }}>{title}</h3>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12 }}>{title}</h2>
 
-      {merchants.map((m: Merchant) => (
+      {merchants.map(m => (
         <div
           key={m.id}
           style={{
-            padding: 14,
-            borderRadius: 12,
             border: '1px solid #e5e7eb',
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 10,
             display: 'flex',
             justifyContent: 'space-between',
-            marginBottom: 10,
           }}
         >
-          <div>{m.display_name}</div>
+          <div>
+            <div style={{ fontWeight: 600 }}>{m.display_name}</div>
+            <div style={{ fontSize: 12, color: '#6b7280' }}>{title}</div>
+          </div>
+
           <a
-            href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query || '')}`}
+            href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
             style={{
-              padding: '8px 12px',
-              borderRadius: 8,
               background: '#111827',
               color: '#fff',
+              padding: '8px 12px',
+              borderRadius: 8,
               textDecoration: 'none',
             }}
           >
@@ -80,59 +108,64 @@ function MerchantSection({ title, merchants, query }: any) {
   )
 }
 
+/* -------------------------
+   RESULTS PAGE
+-------------------------- */
 function ResultsContent() {
-  const router = useRouter()
   const params = useSearchParams()
+  const router = useRouter()
 
-  const query = params.get('q')
-  const sectorParam = params.get('sector')
-  const sector = useMemo(() => resolveSector(query, sectorParam), [query, sectorParam])
+  const query = params.get('q') || ''
+  const sectorFromUrl = params.get('sector')
+
+  const sector = useMemo(() => {
+    if (sectorFromUrl) return sectorFromUrl
+    return inferSector(query)
+  }, [query, sectorFromUrl])
 
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!sector) {
+    async function load() {
+      if (!sector) {
+        setMerchants([])
+        setLoading(false)
+        return
+      }
+
+      const { data } = await supabase
+        .from('affiliate_partners')
+        .select('id, slug, display_name, sector, affiliate_network')
+        .eq('is_active', true)
+        .eq('sector', sector)
+
+      setMerchants(data || [])
       setLoading(false)
-      return
     }
 
-    supabase
-      .from('affiliate_partners')
-      .select('id, slug, display_name, sector, affiliate_network')
-      .eq('is_active', true)
-      .eq('sector', sector)
-      .then(({ data }) => {
-        setMerchants(data || [])
-        setLoading(false)
-      })
+    load()
   }, [sector])
 
-  if (!sector) {
-    return (
-      <main style={{ padding: 24 }}>
-        <button onClick={() => router.push('/search')}>← Back</button>
-        <p>Please search for a product or select a category.</p>
-      </main>
-    )
-  }
-
-  const online = merchants.filter(m => m.affiliate_network === 'cuelinks')
+  const cuelinks = merchants.filter(m => m.affiliate_network === 'cuelinks')
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
 
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
-      <button onClick={() => router.push('/search')}>← Back</button>
-      <h1 style={{ fontSize: 20, fontWeight: 700 }}>
-        Browse {sector.replace('_', ' ')}
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: 20 }}>
+      <button onClick={() => router.back()} style={{ marginBottom: 12 }}>
+        ← Back
+      </button>
+
+      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>
+        {query ? `Compare sellers for “${query}”` : sector ? `Browse ${sector.replace('_', ' ')}` : 'Browse'}
       </h1>
 
-      {loading && <p>Loading…</p>}
+      {loading && <div>Loading…</div>}
 
       {!loading && (
         <>
-          <MerchantSection title="Online platforms" merchants={online} query={query} />
+          <MerchantSection title="Online platforms" merchants={cuelinks} query={query} />
           <MerchantSection title="ONDC sellers" merchants={ondc} query={query} />
           <MerchantSection title="Nearby stores" merchants={local} query={query} />
         </>
@@ -141,9 +174,9 @@ function ResultsContent() {
   )
 }
 
-export default function Page() {
+export default function SearchResultsPage() {
   return (
-    <Suspense fallback={<div>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 20 }}>Loading…</div>}>
       <ResultsContent />
     </Suspense>
   )
