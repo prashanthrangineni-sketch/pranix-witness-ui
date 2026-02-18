@@ -22,20 +22,25 @@ export async function GET(request: Request) {
     return new NextResponse('Invalid merchant', { status: 400 })
   }
 
-  const baseUrl = partner.affiliate_base_url
-  const destination = query
-    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}q=${encodeURIComponent(query)}`
-    : baseUrl
-
-  // CueLinks flow
-  if (partner.affiliate_network === 'cuelinks') {
-    const cuelinksUrl =
-      `https://linksredirect.com/?cid=263419&source=linkkit&url=` +
-      encodeURIComponent(destination)
-
-    return NextResponse.redirect(cuelinksUrl, { status: 307 })
+  // DISCOVERY ONLY → NO REDIRECT
+  if (partner.affiliate_wrap_type === 'discovery') {
+    return new NextResponse('Discovery only', { status: 204 })
   }
 
-  // Direct (Amazon etc.)
+  let destination = partner.affiliate_base_url
+
+  if (query) {
+    destination =
+      `${destination}${destination.includes('?') ? '&' : '?'}q=` +
+      encodeURIComponent(query)
+  }
+
+  // CueLinks
+  if (partner.affiliate_wrap_type === 'cuelinks') {
+    destination =
+      `https://linksredirect.com/?cid=263419&source=linkkit&url=` +
+      encodeURIComponent(destination)
+  }
+
   return NextResponse.redirect(destination, { status: 307 })
 }
