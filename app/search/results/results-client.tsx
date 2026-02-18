@@ -14,7 +14,7 @@ type Merchant = {
 }
 
 /* ---------------------------------
-   SAFE SECTOR DETECTION (NO AI)
+   SAFE SECTOR DETECTION
 ---------------------------------- */
 function resolveSectorFromQuery(q: string | null) {
   if (!q) return null
@@ -58,12 +58,14 @@ function MerchantCard({
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-          {isDiscovery ? 'Discovery only – no commission' : 'Affiliate partner'}
+          {isDiscovery
+            ? 'Discovery only – no commission'
+            : 'Affiliate partner'}
         </div>
       </div>
 
       {isDiscovery ? (
-        <span style={{ color: '#9ca3af' }}>Discovery</span>
+        <span style={{ color: '#9ca3af' }}>View →</span>
       ) : (
         <a
           href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
@@ -83,7 +85,7 @@ function MerchantCard({
 }
 
 /* ---------------------------------
-   SECTION RENDERER
+   SECTION
 ---------------------------------- */
 function MerchantSection({
   title,
@@ -97,11 +99,9 @@ function MerchantSection({
   return (
     <>
       <h2 style={{ marginTop: 24 }}>{title}</h2>
-
       {merchants.length === 0 && (
         <div style={{ color: '#6b7280' }}>Coming soon</div>
       )}
-
       {merchants.map(m => (
         <MerchantCard key={m.id} merchant={m} query={query} />
       ))}
@@ -147,15 +147,8 @@ export default function ResultsClient() {
       })
   }, [sector])
 
-  // ✅ CORRECT FILTERS
-  const online = merchants.filter(
-    m =>
-      m.affiliate_wrap_type === 'cuelinks' ||
-      m.affiliate_wrap_type === 'direct'
-  )
-
-  const discovery = merchants.filter(
-    m => m.affiliate_wrap_type === 'discovery'
+  const online = merchants.filter(m =>
+    ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network)
   )
 
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
@@ -181,12 +174,6 @@ export default function ResultsClient() {
           <MerchantSection
             title="Online platforms"
             merchants={online}
-            query={query}
-          />
-
-          <MerchantSection
-            title="Discovery platforms"
-            merchants={discovery}
             query={query}
           />
 
