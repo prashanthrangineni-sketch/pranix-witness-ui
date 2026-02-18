@@ -9,7 +9,7 @@ type Merchant = {
   slug: string
   display_name: string
   sector: string
-  affiliate_network: 'cuelinks' | 'ondc' | 'local'
+  affiliate_network: 'cuelinks' | 'amazon' | 'ondc' | 'local'
 }
 
 /* ---------------------------------
@@ -64,22 +64,18 @@ function MerchantSection({
         >
           <div>{m.display_name}</div>
 
-          {m.affiliate_network === 'cuelinks' ? (
-            <a
-              href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
-              style={{
-                background: '#111',
-                color: '#fff',
-                padding: '8px 12px',
-                borderRadius: 8,
-                textDecoration: 'none',
-              }}
-            >
-              View prices →
-            </a>
-          ) : (
-            <span style={{ color: '#9ca3af' }}>Coming soon</span>
-          )}
+          <a
+            href={`/api/out?m=${m.slug}&q=${encodeURIComponent(query)}`}
+            style={{
+              background: '#111',
+              color: '#fff',
+              padding: '8px 12px',
+              borderRadius: 8,
+              textDecoration: 'none',
+            }}
+          >
+            View →
+          </a>
         </div>
       ))}
     </>
@@ -122,7 +118,9 @@ export default function ResultsClient() {
       })
   }, [sector])
 
-  const online = merchants.filter(m => m.affiliate_network === 'cuelinks')
+  const online = merchants.filter(
+    m => m.affiliate_network === 'cuelinks' || m.affiliate_network === 'amazon'
+  )
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
@@ -144,13 +142,13 @@ export default function ResultsClient() {
 
           <MerchantSection
             title="ONDC network"
-            merchants={[]}   // intentionally empty
+            merchants={[]}
             query={query}
           />
 
           <MerchantSection
             title="Local merchants"
-            merchants={[]}   // intentionally empty
+            merchants={[]}
             query={query}
           />
         </>
