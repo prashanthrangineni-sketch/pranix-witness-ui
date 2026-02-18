@@ -59,7 +59,7 @@ function MerchantCard({
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
           {isDiscovery
-            ? 'Discovery only – no commission'
+            ? 'Discovery only'
             : 'Affiliate partner'}
         </div>
       </div>
