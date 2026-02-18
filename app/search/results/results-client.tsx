@@ -32,7 +32,7 @@ function resolveSectorFromQuery(q: string | null) {
 }
 
 /* ---------------------------------
-   MERCHANT CARD (SAFE + FUTURE-PROOF)
+   MERCHANT CARD
 ---------------------------------- */
 function MerchantCard({
   merchant,
@@ -57,14 +57,13 @@ function MerchantCard({
     >
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
-
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
           {isDiscovery ? 'Discovery only – no commission' : 'Affiliate partner'}
         </div>
       </div>
 
       {isDiscovery ? (
-        <span style={{ color: '#9ca3af' }}>View →</span>
+        <span style={{ color: '#9ca3af' }}>Discovery</span>
       ) : (
         <a
           href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
@@ -148,8 +147,15 @@ export default function ResultsClient() {
       })
   }, [sector])
 
-  const online = merchants.filter(m =>
-    ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network)
+  // ✅ CORRECT FILTERS
+  const online = merchants.filter(
+    m =>
+      m.affiliate_wrap_type === 'cuelinks' ||
+      m.affiliate_wrap_type === 'direct'
+  )
+
+  const discovery = merchants.filter(
+    m => m.affiliate_wrap_type === 'discovery'
   )
 
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
@@ -175,6 +181,12 @@ export default function ResultsClient() {
           <MerchantSection
             title="Online platforms"
             merchants={online}
+            query={query}
+          />
+
+          <MerchantSection
+            title="Discovery platforms"
+            merchants={discovery}
             query={query}
           />
 
