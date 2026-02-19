@@ -11,6 +11,7 @@ type Merchant = {
   sector: string
   affiliate_network: 'cuelinks' | 'amazon' | 'ondc' | 'local' | 'discovery'
   affiliate_wrap_type: 'cuelinks' | 'direct' | 'discovery'
+  affiliate_base_url: string | null
 }
 
 /* ---------------------------------
@@ -58,14 +59,25 @@ function MerchantCard({
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-          {isDiscovery
-            ? 'Discovery only'
-            : 'Affiliate partner'}
+          {isDiscovery ? 'Discovery' : 'Affiliate partner'}
         </div>
       </div>
 
       {isDiscovery ? (
-        <span style={{ color: '#9ca3af' }}>View →</span>
+        <a
+          href={merchant.affiliate_base_url || '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            background: '#f3f4f6',
+            color: '#111',
+            padding: '8px 12px',
+            borderRadius: 8,
+            textDecoration: 'none',
+          }}
+        >
+          Discover →
+        </a>
       ) : (
         <a
           href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
@@ -99,9 +111,11 @@ function MerchantSection({
   return (
     <>
       <h2 style={{ marginTop: 24 }}>{title}</h2>
+
       {merchants.length === 0 && (
         <div style={{ color: '#6b7280' }}>Coming soon</div>
       )}
+
       {merchants.map(m => (
         <MerchantCard key={m.id} merchant={m} query={query} />
       ))}
@@ -137,7 +151,7 @@ export default function ResultsClient() {
     supabase
       .from('affiliate_partners')
       .select(
-        'id, slug, display_name, sector, affiliate_network, affiliate_wrap_type'
+        'id, slug, display_name, sector, affiliate_network, affiliate_wrap_type, affiliate_base_url'
       )
       .eq('is_active', true)
       .eq('sector', sector)
