@@ -58,7 +58,7 @@ function MerchantCard({
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>
-          {isDiscovery ? 'Discovery' : 'Online platform'}
+          {isDiscovery ? 'Discovery' : 'Affiliate partner'}
         </div>
       </div>
 
@@ -154,7 +154,7 @@ export default function ResultsClient() {
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
-      <button onClick={() => router.push('/search')}>← Back</button>
+      <button onClick={() => router.back()}>← Back</button>
 
       <h1 style={{ margin: '16px 0' }}>
         Showing results for {sector || 'search'}
