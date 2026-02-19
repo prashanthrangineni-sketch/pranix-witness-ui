@@ -14,9 +14,9 @@ type Merchant = {
 }
 
 /* ---------------------------------
-   SAFE SECTOR DETECTION
+   FAST LOCAL SECTOR HINTS (unchanged)
 ---------------------------------- */
-function resolveSectorFromQuery(q: string | null) {
+function resolveSectorFromQueryLocal(q: string | null) {
   if (!q) return null
   const query = q.toLowerCase()
 
@@ -32,7 +32,7 @@ function resolveSectorFromQuery(q: string | null) {
 }
 
 /* ---------------------------------
-   MERCHANT CARD
+   MERCHANT CARD (UNCHANGED)
 ---------------------------------- */
 function MerchantCard({
   merchant,
@@ -83,7 +83,7 @@ function MerchantCard({
 }
 
 /* ---------------------------------
-   SECTION
+   SECTION (UNCHANGED)
 ---------------------------------- */
 function MerchantSection({
   title,
@@ -108,7 +108,7 @@ function MerchantSection({
 }
 
 /* ---------------------------------
-   MAIN PAGE
+   MAIN PAGE (FIXED)
 ---------------------------------- */
 export default function ResultsClient() {
   const router = useRouter()
@@ -117,14 +117,40 @@ export default function ResultsClient() {
   const query = params.get('q') || ''
   const sectorParam = params.get('sector')
 
-  const sector = useMemo(
-    () => sectorParam || resolveSectorFromQuery(query),
-    [sectorParam, query]
-  )
-
+  const [sector, setSector] = useState<string | null>(null)
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
+  // Step 1: Resolve sector
+  useEffect(() => {
+    async function resolveSector() {
+      if (sectorParam) {
+        setSector(sectorParam)
+        return
+      }
+
+      // Try fast local logic first
+      const localSector = resolveSectorFromQueryLocal(query)
+      if (localSector) {
+        setSector(localSector)
+        return
+      }
+
+      // Fallback: Supabase keyword mapping
+      const { data } = await supabase
+        .from('intent_keywords')
+        .select('sector')
+        .ilike('keyword', query)
+        .limit(1)
+        .single()
+
+      setSector(data?.sector || null)
+    }
+
+    resolveSector()
+  }, [query, sectorParam])
+
+  // Step 2: Fetch merchants once sector is known
   useEffect(() => {
     if (!sector) {
       setMerchants([])
@@ -168,23 +194,9 @@ export default function ResultsClient() {
 
       {!loading && (
         <>
-          <MerchantSection
-            title="Online platforms"
-            merchants={online}
-            query={query}
-          />
-
-          <MerchantSection
-            title="ONDC network"
-            merchants={ondc}
-            query={query}
-          />
-
-          <MerchantSection
-            title="Local merchants"
-            merchants={local}
-            query={query}
-          />
+          <MerchantSection title="Online platforms" merchants={online} query={query} />
+          <MerchantSection title="ONDC network" merchants={ondc} query={query} />
+          <MerchantSection title="Local merchants" merchants={local} query={query} />
         </>
       )}
     </main>
