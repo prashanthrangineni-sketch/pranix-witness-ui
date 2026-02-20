@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
-/* ---------------------------------
-   TYPES
----------------------------------- */
 type Merchant = {
   id: string
   slug: string
@@ -26,13 +23,31 @@ function resolveByUnit(query: string): string | null {
 }
 
 /* ---------------------------------
-   FAST LOCAL HINTS (SAFE FALLBACK)
+   COOKED FOOD OVERRIDE (NEW)
+---------------------------------- */
+function hasCookedFoodSignal(query: string): boolean {
+  const cookedSignals = [
+    'curry',
+    'gravy',
+    'fry',
+    'masala',
+    'biryani',
+    'restaurant',
+    'order',
+    'meal',
+    'cooked'
+  ]
+
+  return cookedSignals.some(word => query.includes(word))
+}
+
+/* ---------------------------------
+   LOCAL FALLBACK HINTS
 ---------------------------------- */
 function resolveLocalHint(query: string): string | null {
   if (query.includes('mobile') || query.includes('iphone')) return 'electronics'
   if (query.includes('shirt') || query.includes('jeans') || query.includes('shoes')) return 'apparel_fashion'
   if (query.includes('cab') || query.includes('ride') || query.includes('taxi')) return 'mobility'
-  if (query.includes('biryani') || query.includes('dosa') || query.includes('food')) return 'food'
   if (query.includes('cream') || query.includes('shampoo')) return 'beauty_wellness'
   return null
 }
@@ -82,7 +97,7 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (STRICT & SAFE)
+     RESOLVE SECTOR (FINAL)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
@@ -110,7 +125,19 @@ export default function ResultsClient() {
           return
         }
 
-        // 2️⃣ Phrase dominance from DB
+        // 2️⃣ Cooked food override
+        if (hasCookedFoodSignal(query)) {
+          await supabase.from('search_logs').insert({
+            raw_query: query,
+            resolved_sector: 'food',
+            resolution_source: 'cooked_override'
+          })
+          setSector('food')
+          setLoading(false)
+          return
+        }
+
+        // 3️⃣ Phrase dominance from DB
         const { data: keywords } = await supabase
           .from('sector_keywords')
           .select('keyword, sector')
@@ -135,7 +162,7 @@ export default function ResultsClient() {
           return
         }
 
-        // 3️⃣ Local hint fallback
+        // 4️⃣ Local fallback
         const local = resolveLocalHint(query)
         if (local) {
           await supabase.from('search_logs').insert({
@@ -148,7 +175,7 @@ export default function ResultsClient() {
           return
         }
 
-        // 4️⃣ Unmatched
+        // 5️⃣ Unmatched
         await supabase.from('search_logs').insert({
           raw_query: query,
           resolved_sector: null,
@@ -169,11 +196,10 @@ export default function ResultsClient() {
   }, [query, sectorFromUrl])
 
   /* ---------------------------------
-     FETCH MERCHANTS (STRICT)
+     FETCH MERCHANTS
   ---------------------------------- */
   useEffect(() => {
     async function fetchMerchants() {
-      // Sector resolved
       if (sector) {
         const { data } = await supabase
           .from('affiliate_partners')
@@ -185,7 +211,6 @@ export default function ResultsClient() {
         return
       }
 
-      // Browse only
       if (!query && !sectorFromUrl) {
         const { data } = await supabase
           .from('affiliate_partners')
@@ -196,7 +221,6 @@ export default function ResultsClient() {
         return
       }
 
-      // No results
       setMerchants([])
     }
 
@@ -212,7 +236,9 @@ export default function ResultsClient() {
       <button onClick={() => router.back()}>← Back</button>
 
       <h1 style={{ marginTop: 16 }}>
-        {sector ? `Showing results for ${sector}` : 'Browse platforms'}
+        {sector
+          ? `Showing results for "${rawQuery}" (${sector})`
+          : 'Browse platforms'}
       </h1>
 
       {loading && <div>Loading…</div>}
@@ -237,4 +263,4 @@ export default function ResultsClient() {
       )}
     </main>
   )
-}
+            }
