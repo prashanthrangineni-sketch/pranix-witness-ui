@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
+/* ---------------------------------
+   TYPES
+---------------------------------- */
 type Merchant = {
   id: string
   slug: string
@@ -14,50 +17,23 @@ type Merchant = {
 }
 
 /* ---------------------------------
-   UNIT-BASED SECTOR RULES (SAFE)
+   UNIT LOGIC (HIGHEST PRIORITY)
 ---------------------------------- */
-function resolveSectorFromUnits(query: string) {
-  const q = query.toLowerCase()
-
-  // 🔴 Pharmacy units
-  if (
-    q.includes(' mg') ||
-    q.includes(' ml') ||
-    q.includes(' strip') ||
-    q.includes(' capsule')
-  ) {
-    return 'pharmacy'
-  }
-
-  // 🟢 Grocery units
-  if (
-    q.includes(' kg') ||
-    q.includes(' gram') ||
-    q.includes(' gm') ||
-    q.includes(' litre') ||
-    q.includes(' liter') ||
-    q.includes(' packet')
-  ) {
-    return 'grocery'
-  }
-
+function resolveByUnit(query: string): string | null {
+  if (/\b\d+\s?(mg|ml|tablet|capsule|strip)\b/.test(query)) return 'pharmacy'
+  if (/\b\d+\s?(kg|g|gram|litre|liter|packet)\b/.test(query)) return 'grocery'
   return null
 }
 
 /* ---------------------------------
-   FAST LOCAL SECTOR HINTS (SAFE)
+   FAST LOCAL HINTS (SAFE FALLBACK)
 ---------------------------------- */
-function resolveSectorFromQueryLocal(q: string) {
-  const query = q.toLowerCase()
-
-  if (query.includes('iphone') || query.includes('mobile')) return 'electronics'
+function resolveLocalHint(query: string): string | null {
+  if (query.includes('mobile') || query.includes('iphone')) return 'electronics'
   if (query.includes('shirt') || query.includes('jeans') || query.includes('shoes')) return 'apparel_fashion'
-  if (query.includes('medicine') || query.includes('dolo') || query.includes('tablet')) return 'pharmacy'
-  if (query.includes('biryani') || query.includes('dosa') || query.includes('food')) return 'food'
-  if (query.includes('grocery') || query.includes('rice') || query.includes('dal')) return 'grocery'
-  if (query.includes('cream') || query.includes('shampoo')) return 'beauty_wellness'
   if (query.includes('cab') || query.includes('ride') || query.includes('taxi')) return 'mobility'
-
+  if (query.includes('biryani') || query.includes('dosa') || query.includes('food')) return 'food'
+  if (query.includes('cream') || query.includes('shampoo')) return 'beauty_wellness'
   return null
 }
 
@@ -106,68 +82,85 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (STRICT + SAFE)
+     RESOLVE SECTOR (STRICT & SAFE)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
 
-      // FLOW A: Sector card click
+      // FLOW 1: Sector card click
       if (sectorFromUrl) {
         setSector(sectorFromUrl)
         setLoading(false)
         return
       }
 
-      // FLOW B: Search intent
+      // FLOW 2: Search
       if (query) {
-        // 0️⃣ UNIT LOGIC (highest priority)
-        const unitSector = resolveSectorFromUnits(query)
+        // 1️⃣ Unit logic
+        const unitSector = resolveByUnit(query)
         if (unitSector) {
           await supabase.from('search_logs').insert({
             raw_query: query,
             resolved_sector: unitSector,
-            resolution_source: 'unit_rule'
+            resolution_source: 'unit'
           })
           setSector(unitSector)
           setLoading(false)
           return
         }
 
-        // 1️⃣ Local hints
-        const localHit = resolveSectorFromQueryLocal(query)
-        if (localHit) {
-          await supabase.from('search_logs').insert({
-            raw_query: query,
-            resolved_sector: localHit,
-            resolution_source: 'local_hint'
-          })
-          setSector(localHit)
-          setLoading(false)
-          return
-        }
-
-        // 2️⃣ Keyword dictionary
+        // 2️⃣ Phrase dominance from DB
         const { data: keywords } = await supabase
           .from('sector_keywords')
           .select('keyword, sector')
           .eq('is_active', true)
 
-        const found = keywords?.find(k => query.includes(k.keyword.toLowerCase()))
-        const resolved = found ? found.sector : null
+        const sorted = (keywords || []).sort(
+          (a, b) => b.keyword.length - a.keyword.length
+        )
 
+        const match = sorted.find(k =>
+          query.includes(k.keyword.toLowerCase())
+        )
+
+        if (match) {
+          await supabase.from('search_logs').insert({
+            raw_query: query,
+            resolved_sector: match.sector,
+            resolution_source: 'keyword'
+          })
+          setSector(match.sector)
+          setLoading(false)
+          return
+        }
+
+        // 3️⃣ Local hint fallback
+        const local = resolveLocalHint(query)
+        if (local) {
+          await supabase.from('search_logs').insert({
+            raw_query: query,
+            resolved_sector: local,
+            resolution_source: 'local_hint'
+          })
+          setSector(local)
+          setLoading(false)
+          return
+        }
+
+        // 4️⃣ Unmatched
         await supabase.from('search_logs').insert({
           raw_query: query,
-          resolved_sector: resolved,
-          resolution_source: resolved ? 'keyword' : 'unmatched'
+          resolved_sector: null,
+          resolution_source: 'unmatched'
         })
 
-        setSector(resolved)
+        setSector(null)
         setLoading(false)
         return
       }
 
-      // FLOW C: Browse
+      // FLOW 3: Browse
       setSector(null)
       setLoading(false)
     }
@@ -176,14 +169,15 @@ export default function ResultsClient() {
   }, [query, sectorFromUrl])
 
   /* ---------------------------------
-     FETCH MERCHANTS (UNCHANGED LOGIC)
+     FETCH MERCHANTS (STRICT)
   ---------------------------------- */
   useEffect(() => {
     async function fetchMerchants() {
+      // Sector resolved
       if (sector) {
         const { data } = await supabase
           .from('affiliate_partners')
-          .select('id, slug, display_name, sector, affiliate_network, affiliate_wrap_type')
+          .select('*')
           .eq('is_active', true)
           .eq('sector', sector)
 
@@ -191,16 +185,18 @@ export default function ResultsClient() {
         return
       }
 
+      // Browse only
       if (!query && !sectorFromUrl) {
         const { data } = await supabase
           .from('affiliate_partners')
-          .select('id, slug, display_name, sector, affiliate_network, affiliate_wrap_type')
+          .select('*')
           .eq('is_active', true)
 
         setMerchants(data || [])
         return
       }
 
+      // No results
       setMerchants([])
     }
 
