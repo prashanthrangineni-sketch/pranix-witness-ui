@@ -3,20 +3,16 @@
 import { useRouter } from 'next/navigation'
 
 const EXAMPLES = [
-  { label: 'Milk', query: 'milk', sector: 'Grocery' },
-  { label: 'iPhone', query: 'iphone', sector: 'Electronics' },
-  { label: 'Paracetamol', query: 'paracetamol', sector: 'Pharmacy' },
+  { label: 'Milk', query: 'milk', sector: 'grocery' },
+  { label: 'iPhone', query: 'iphone', sector: 'electronics' },
+  { label: 'Paracetamol', query: 'paracetamol', sector: 'pharmacy' },
 ]
 
 export default function FeaturedExamples() {
   const router = useRouter()
 
   return (
-    <section
-      style={{
-        marginBottom: '32px',
-      }}
-    >
+    <section style={{ marginBottom: '32px' }}>
       <h3
         style={{
           fontSize: '15px',
@@ -39,7 +35,9 @@ export default function FeaturedExamples() {
           <div
             key={e.label}
             onClick={() =>
-              router.push(`/search?q=${encodeURIComponent(e.query)}`)
+              router.push(
+                `/search/results?q=${encodeURIComponent(e.query)}&sector=${e.sector}`
+              )
             }
             style={{
               minWidth: '150px',
@@ -54,13 +52,8 @@ export default function FeaturedExamples() {
             <div style={{ fontWeight: 700, marginBottom: '4px' }}>
               {e.label}
             </div>
-            <div
-              style={{
-                fontSize: '12px',
-                color: '#6b7280',
-              }}
-            >
-              {e.sector}
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              {e.sector.charAt(0).toUpperCase() + e.sector.slice(1)}
             </div>
           </div>
         ))}
