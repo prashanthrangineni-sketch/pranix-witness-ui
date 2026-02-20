@@ -11,88 +11,90 @@ type Merchant = {
   sector: string
   affiliate_network: 'cuelinks' | 'amazon' | 'ondc' | 'local' | 'discovery'
   affiliate_wrap_type: 'cuelinks' | 'direct' | 'discovery'
+  affiliate_base_url: string | null
+  website_url: string | null
 }
 
-/* ---------------------------------
-   UNIT LOGIC (HIGHEST PRIORITY)
----------------------------------- */
-function resolveByUnit(query: string): string | null {
-  if (/\b\d+\s?(mg|ml|tablet|capsule|strip)\b/.test(query)) return 'pharmacy'
-  if (/\b\d+\s?(kg|g|gram|litre|liter|packet)\b/.test(query)) return 'grocery'
+/* -----------------------------
+   PRIORITY 1: UNIT LOGIC
+------------------------------ */
+function resolveByUnit(q: string): string | null {
+  if (/\b\d+\s?(mg|ml|tablet|capsule|strip)\b/.test(q)) return 'pharmacy'
+  if (/\b\d+\s?(kg|g|gram|litre|liter|packet)\b/.test(q)) return 'grocery'
   return null
 }
 
-/* ---------------------------------
-   COOKED FOOD OVERRIDE
----------------------------------- */
-function hasCookedFoodSignal(query: string): boolean {
-  const cookedSignals = [
-    'curry',
-    'gravy',
-    'fry',
-    'masala',
-    'biryani',
-    'restaurant',
-    'order',
-    'meal',
-    'cooked'
-  ]
-  return cookedSignals.some(w => query.includes(w))
+/* -----------------------------
+   PRIORITY 2: COOKED FOOD
+------------------------------ */
+function hasCookedFoodSignal(q: string): boolean {
+  return [
+    'curry','gravy','fry','masala','biryani','restaurant','meal','order'
+  ].some(w => q.includes(w))
 }
 
-/* ---------------------------------
-   LOCAL FALLBACK HINTS
----------------------------------- */
-function resolveLocalHint(query: string): string | null {
-  if (query.includes('mobile') || query.includes('iphone')) return 'electronics'
-  if (query.includes('shirt') || query.includes('jeans') || query.includes('shoes')) return 'apparel_fashion'
-  if (query.includes('cab') || query.includes('ride') || query.includes('taxi')) return 'mobility'
-  if (query.includes('cream') || query.includes('shampoo')) return 'beauty_wellness'
+/* -----------------------------
+   PRIORITY 4: LOCAL HINTS
+------------------------------ */
+function resolveLocalHint(q: string): string | null {
+  if (q.includes('iphone') || q.includes('mobile')) return 'electronics'
+  if (q.includes('shirt') || q.includes('jeans') || q.includes('shoes')) return 'apparel_fashion'
+  if (q.includes('cab') || q.includes('ride') || q.includes('taxi')) return 'mobility'
+  if (q.includes('cream') || q.includes('shampoo')) return 'beauty_wellness'
   return null
 }
 
-/* ---------------------------------
-   MERCHANT CARD
----------------------------------- */
+/* -----------------------------
+   MERCHANT CARD (LOCKED)
+------------------------------ */
 function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }) {
-  const router = useRouter()
-  const isDiscovery = merchant.affiliate_wrap_type === 'discovery'
+  const isDiscovery = merchant.affiliate_network === 'discovery'
+
+  if (isDiscovery) {
+    const url =
+      merchant.affiliate_base_url ||
+      merchant.website_url ||
+      '#'
+
+    return (
+      <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+        <div>
+          <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
+          <div style={{ fontSize: 12, color: '#6b7280' }}>Discovery</div>
+        </div>
+
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ fontWeight: 500, textDecoration: 'none' }}
+        >
+          View →
+        </a>
+      </div>
+    )
+  }
 
   return (
     <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
-        <div style={{ fontSize: 12, color: '#6b7280' }}>
-          {isDiscovery ? 'Discovery' : 'Affiliate partner'}
-        </div>
+        <div style={{ fontSize: 12, color: '#6b7280' }}>Affiliate partner</div>
       </div>
 
-      {isDiscovery ? (
-        <button
-          onClick={() =>
-            router.push(
-              `/search/results?q=${encodeURIComponent(query)}&sector=${merchant.sector}`
-            )
-          }
-          style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontWeight: 500 }}
-        >
-          View →
-        </button>
-      ) : (
-        <a
-          href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
-          style={{ background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, textDecoration: 'none' }}
-        >
-          View →
-        </a>
-      )}
+      <a
+        href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
+        style={{ background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, textDecoration: 'none' }}
+      >
+        View →
+      </a>
     </div>
   )
 }
 
-/* ---------------------------------
-   MAIN RESULTS PAGE
----------------------------------- */
+/* -----------------------------
+   MAIN PAGE
+------------------------------ */
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
@@ -104,29 +106,24 @@ export default function ResultsClient() {
   const [sector, setSector] = useState<string | null>(null)
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
-  const [noResults, setNoResults] = useState(false) // 🔒 NEW GUARD
+  const [noResults, setNoResults] = useState(false)
 
-  /* ---------------------------------
-     RESOLVE SECTOR (STRICT)
-  ---------------------------------- */
+  /* -------- RESOLVE SECTOR -------- */
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
       setNoResults(false)
 
-      // FLOW 1: Sector card click
       if (sectorFromUrl) {
         setSector(sectorFromUrl)
         setLoading(false)
         return
       }
 
-      // FLOW 2: Search
       if (query) {
-        let resolved: string | null = null
-
-        resolved = resolveByUnit(query)
-        if (!resolved && hasCookedFoodSignal(query)) resolved = 'food'
+        let resolved =
+          resolveByUnit(query) ||
+          (hasCookedFoodSignal(query) ? 'food' : null)
 
         if (!resolved) {
           const { data } = await supabase
@@ -159,7 +156,6 @@ export default function ResultsClient() {
         return
       }
 
-      // FLOW 3: Browse
       setSector(null)
       setLoading(false)
     }
@@ -167,9 +163,7 @@ export default function ResultsClient() {
     resolveSector()
   }, [query, sectorFromUrl])
 
-  /* ---------------------------------
-     FETCH MERCHANTS
-  ---------------------------------- */
+  /* -------- FETCH MERCHANTS -------- */
   useEffect(() => {
     async function fetchMerchants() {
       if (noResults) {
@@ -201,7 +195,9 @@ export default function ResultsClient() {
     fetchMerchants()
   }, [sector, query, sectorFromUrl, noResults])
 
-  const online = merchants.filter(m => ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network))
+  const online = merchants.filter(m =>
+    ['cuelinks','amazon','discovery'].includes(m.affiliate_network)
+  )
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
 
