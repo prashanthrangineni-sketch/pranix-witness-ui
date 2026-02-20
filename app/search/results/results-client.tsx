@@ -23,7 +23,7 @@ function resolveByUnit(query: string): string | null {
 }
 
 /* ---------------------------------
-   COOKED FOOD OVERRIDE (NEW)
+   COOKED FOOD OVERRIDE
 ---------------------------------- */
 function hasCookedFoodSignal(query: string): boolean {
   const cookedSignals = [
@@ -37,7 +37,6 @@ function hasCookedFoodSignal(query: string): boolean {
     'meal',
     'cooked'
   ]
-
   return cookedSignals.some(word => query.includes(word))
 }
 
@@ -53,13 +52,24 @@ function resolveLocalHint(query: string): string | null {
 }
 
 /* ---------------------------------
-   MERCHANT CARD (UNCHANGED)
+   MERCHANT CARD (FIXED FOR DISCOVERY)
 ---------------------------------- */
 function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }) {
+  const router = useRouter()
   const isDiscovery = merchant.affiliate_wrap_type === 'discovery'
 
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 12,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}
+    >
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280' }}>
@@ -68,11 +78,32 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
       </div>
 
       {isDiscovery ? (
-        <span style={{ color: '#9ca3af' }}>View →</span>
+        <button
+          onClick={() => {
+            router.push(
+              `/search/results?q=${encodeURIComponent(query)}&sector=${merchant.sector}`
+            )
+          }}
+          style={{
+            background: 'transparent',
+            border: 'none',
+            color: '#111',
+            cursor: 'pointer',
+            fontWeight: 500
+          }}
+        >
+          View →
+        </button>
       ) : (
         <a
           href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
-          style={{ background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, textDecoration: 'none' }}
+          style={{
+            background: '#111',
+            color: '#fff',
+            padding: '8px 12px',
+            borderRadius: 8,
+            textDecoration: 'none'
+          }}
         >
           View →
         </a>
@@ -97,7 +128,7 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (FINAL)
+     RESOLVE SECTOR
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
@@ -112,7 +143,6 @@ export default function ResultsClient() {
 
       // FLOW 2: Search
       if (query) {
-        // 1️⃣ Unit logic
         const unitSector = resolveByUnit(query)
         if (unitSector) {
           await supabase.from('search_logs').insert({
@@ -125,7 +155,6 @@ export default function ResultsClient() {
           return
         }
 
-        // 2️⃣ Cooked food override
         if (hasCookedFoodSignal(query)) {
           await supabase.from('search_logs').insert({
             raw_query: query,
@@ -137,7 +166,6 @@ export default function ResultsClient() {
           return
         }
 
-        // 3️⃣ Phrase dominance from DB
         const { data: keywords } = await supabase
           .from('sector_keywords')
           .select('keyword, sector')
@@ -162,7 +190,6 @@ export default function ResultsClient() {
           return
         }
 
-        // 4️⃣ Local fallback
         const local = resolveLocalHint(query)
         if (local) {
           await supabase.from('search_logs').insert({
@@ -175,7 +202,6 @@ export default function ResultsClient() {
           return
         }
 
-        // 5️⃣ Unmatched
         await supabase.from('search_logs').insert({
           raw_query: query,
           resolved_sector: null,
@@ -227,7 +253,9 @@ export default function ResultsClient() {
     fetchMerchants()
   }, [sector, query, sectorFromUrl])
 
-  const online = merchants.filter(m => ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network))
+  const online = merchants.filter(m =>
+    ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network)
+  )
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
 
@@ -263,4 +291,4 @@ export default function ResultsClient() {
       )}
     </main>
   )
-            }
+      }
