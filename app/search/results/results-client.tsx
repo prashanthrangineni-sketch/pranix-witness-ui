@@ -35,7 +35,7 @@ function hasCookedFoodSignal(query: string): boolean {
     'restaurant',
     'order',
     'meal',
-    'cooked'
+    'cooked',
   ]
   return cookedSignals.some(word => query.includes(word))
 }
@@ -52,7 +52,7 @@ function resolveLocalHint(query: string): string | null {
 }
 
 /* ---------------------------------
-   MERCHANT CARD (FIXED FOR DISCOVERY)
+   MERCHANT CARD (DISCOVERY FIXED)
 ---------------------------------- */
 function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }) {
   const router = useRouter()
@@ -67,7 +67,7 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
         marginTop: 12,
         display: 'flex',
         justifyContent: 'space-between',
-        alignItems: 'center'
+        alignItems: 'center',
       }}
     >
       <div>
@@ -86,10 +86,11 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
           }}
           style={{
             background: 'transparent',
-            border: 'none',
-            color: '#111',
+            border: '1px solid #111',
+            padding: '8px 12px',
+            borderRadius: 8,
             cursor: 'pointer',
-            fontWeight: 500
+            fontWeight: 500,
           }}
         >
           View →
@@ -102,7 +103,7 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
             color: '#fff',
             padding: '8px 12px',
             borderRadius: 8,
-            textDecoration: 'none'
+            textDecoration: 'none',
           }}
         >
           View →
@@ -128,27 +129,27 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR
+     RESOLVE SECTOR (FINAL + SAFE)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
 
-      // FLOW 1: Sector card click
+      // FLOW 1: Sector card or discovery click
       if (sectorFromUrl) {
         setSector(sectorFromUrl)
         setLoading(false)
         return
       }
 
-      // FLOW 2: Search
+      // FLOW 2: Search intent
       if (query) {
         const unitSector = resolveByUnit(query)
         if (unitSector) {
           await supabase.from('search_logs').insert({
             raw_query: query,
             resolved_sector: unitSector,
-            resolution_source: 'unit'
+            resolution_source: 'unit',
           })
           setSector(unitSector)
           setLoading(false)
@@ -159,7 +160,7 @@ export default function ResultsClient() {
           await supabase.from('search_logs').insert({
             raw_query: query,
             resolved_sector: 'food',
-            resolution_source: 'cooked_override'
+            resolution_source: 'cooked_override',
           })
           setSector('food')
           setLoading(false)
@@ -183,7 +184,7 @@ export default function ResultsClient() {
           await supabase.from('search_logs').insert({
             raw_query: query,
             resolved_sector: match.sector,
-            resolution_source: 'keyword'
+            resolution_source: 'keyword',
           })
           setSector(match.sector)
           setLoading(false)
@@ -195,7 +196,7 @@ export default function ResultsClient() {
           await supabase.from('search_logs').insert({
             raw_query: query,
             resolved_sector: local,
-            resolution_source: 'local_hint'
+            resolution_source: 'local_hint',
           })
           setSector(local)
           setLoading(false)
@@ -205,7 +206,7 @@ export default function ResultsClient() {
         await supabase.from('search_logs').insert({
           raw_query: query,
           resolved_sector: null,
-          resolution_source: 'unmatched'
+          resolution_source: 'unmatched',
         })
 
         setSector(null)
@@ -280,15 +281,21 @@ export default function ResultsClient() {
       {!loading && merchants.length > 0 && (
         <>
           <h2>Online platforms</h2>
-          {online.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {online.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
 
           <h2>ONDC network</h2>
-          {ondc.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {ondc.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
 
           <h2>Local merchants</h2>
-          {local.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {local.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
         </>
       )}
     </main>
   )
-      }
+    }
