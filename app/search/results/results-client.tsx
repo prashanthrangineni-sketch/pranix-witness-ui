@@ -133,11 +133,16 @@ export default function ResultsClient() {
         return
       }
 
-      const match = keywords.find(k =>
-        query.includes(k.keyword.toLowerCase())
-      )
+      const resolvedSector = match?.sector || null
 
-      setSector(match?.sector || null)
+       // 🔹 LOG SEARCH (non-blocking, safe)
+       await supabase.from('search_logs').insert({
+       raw_query: query,
+       resolved_sector: resolvedSector,
+       resolution_source: match ? 'keyword' : 'unmatched'
+       })
+
+setSector(resolvedSector)
       setLoading(false)
     }
 
