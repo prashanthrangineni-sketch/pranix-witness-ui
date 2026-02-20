@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
+/* ---------------------------------
+   TYPES (UNCHANGED)
+---------------------------------- */
 type Merchant = {
   id: string
   slug: string
@@ -14,7 +17,7 @@ type Merchant = {
 }
 
 /* ---------------------------------
-   FAST LOCAL SECTOR HINTS (unchanged)
+   FAST LOCAL SECTOR HINTS (UNCHANGED)
 ---------------------------------- */
 function resolveSectorFromQueryLocal(q: string | null) {
   if (!q) return null
@@ -38,7 +41,16 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
   const isDiscovery = merchant.affiliate_wrap_type === 'discovery'
 
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
+    <div
+      style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 12,
+        display: 'flex',
+        justifyContent: 'space-between'
+      }}
+    >
       <div>
         <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
         <div style={{ fontSize: 12, color: '#6b7280' }}>
@@ -49,7 +61,16 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
       {isDiscovery ? (
         <span style={{ color: '#9ca3af' }}>View →</span>
       ) : (
-        <a href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`} style={{ background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8 }}>
+        <a
+          href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
+          style={{
+            background: '#111',
+            color: '#fff',
+            padding: '8px 12px',
+            borderRadius: 8,
+            textDecoration: 'none'
+          }}
+        >
           View →
         </a>
       )}
@@ -58,43 +79,74 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
 }
 
 /* ---------------------------------
-   MAIN PAGE (FIXED)
+   MAIN RESULTS PAGE (FIXED & SAFE)
 ---------------------------------- */
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
+
+  // Query typed by user
   const query = (params.get('q') || '').toLowerCase()
+
+  // Sector selected by clicking sector card
+  const sectorFromUrl = params.get('sector')
 
   const [sector, setSector] = useState<string | null>(null)
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Resolve sector
+  /* ---------------------------------
+     RESOLVE SECTOR (SAFE ORDER)
+  ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
-      // 1️⃣ Try fast local hints
+      setLoading(true)
+
+      // 1️⃣ Sector click (NO intent logic)
+      if (sectorFromUrl) {
+        setSector(sectorFromUrl)
+        return
+      }
+
+      // 2️⃣ Nothing typed
+      if (!query) {
+        setSector(null)
+        setLoading(false)
+        return
+      }
+
+      // 3️⃣ Fast local hints
       const local = resolveSectorFromQueryLocal(query)
       if (local) {
         setSector(local)
         return
       }
 
-      // 2️⃣ Supabase keyword dictionary
-      const { data: keywords } = await supabase
+      // 4️⃣ Supabase intent keywords
+      const { data: keywords, error } = await supabase
         .from('intent_keywords')
         .select('keyword, sector')
 
-      const match = keywords?.find(k =>
+      if (error || !keywords) {
+        setSector(null)
+        setLoading(false)
+        return
+      }
+
+      const match = keywords.find(k =>
         query.includes(k.keyword.toLowerCase())
       )
 
       setSector(match?.sector || null)
+      setLoading(false)
     }
 
     resolveSector()
-  }, [query])
+  }, [query, sectorFromUrl])
 
-  // Fetch merchants
+  /* ---------------------------------
+     FETCH MERCHANTS (UNCHANGED)
+  ---------------------------------- */
   useEffect(() => {
     if (!sector) {
       setMerchants([])
@@ -113,29 +165,53 @@ export default function ResultsClient() {
       })
   }, [sector])
 
+  /* ---------------------------------
+     GROUP MERCHANTS
+  ---------------------------------- */
   const online = merchants.filter(m =>
     ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network)
   )
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
 
+  /* ---------------------------------
+     RENDER
+  ---------------------------------- */
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
       <button onClick={() => router.back()}>← Back</button>
-      <h1>Showing results for {sector || 'search'}</h1>
+
+      <h1>
+        Showing results for {sector || 'search'}
+      </h1>
 
       {loading && <div>Loading…</div>}
 
-      {!loading && (
+      {!loading && !sector && query && (
+        <div style={{ marginTop: 24, color: '#6b7280' }}>
+          No results found for “{query}”
+        </div>
+      )}
+
+      {!loading && sector && (
         <>
           <h2>Online platforms</h2>
-          {online.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {online.length === 0 && <div>No online platforms available</div>}
+          {online.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
 
           <h2>ONDC network</h2>
-          {ondc.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {ondc.length === 0 && <div>Coming soon</div>}
+          {ondc.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
 
           <h2>Local merchants</h2>
-          {local.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
+          {local.length === 0 && <div>Coming soon</div>}
+          {local.map(m => (
+            <MerchantCard key={m.id} merchant={m} query={query} />
+          ))}
         </>
       )}
     </main>
