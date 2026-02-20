@@ -13,20 +13,20 @@ type Merchant = {
   affiliate_wrap_type: 'cuelinks' | 'direct' | 'discovery'
 }
 
-/* ---------------------------------
-   UNIT LOGIC (HIGHEST PRIORITY)
----------------------------------- */
+/* =========================================================
+   INTENT RESOLUTION HELPERS (SAFE + ORDERED)
+========================================================= */
+
+// 1️⃣ Unit logic (highest priority)
 function resolveByUnit(query: string): string | null {
   if (/\b\d+\s?(mg|ml|tablet|capsule|strip)\b/.test(query)) return 'pharmacy'
   if (/\b\d+\s?(kg|g|gram|litre|liter|packet)\b/.test(query)) return 'grocery'
   return null
 }
 
-/* ---------------------------------
-   COOKED FOOD OVERRIDE
----------------------------------- */
+// 2️⃣ Cooked food override
 function hasCookedFoodSignal(query: string): boolean {
-  const cookedSignals = [
+  const signals = [
     'curry',
     'gravy',
     'fry',
@@ -35,14 +35,11 @@ function hasCookedFoodSignal(query: string): boolean {
     'restaurant',
     'order',
     'meal',
-    'cooked',
   ]
-  return cookedSignals.some(word => query.includes(word))
+  return signals.some(s => query.includes(s))
 }
 
-/* ---------------------------------
-   LOCAL FALLBACK HINTS
----------------------------------- */
+// 3️⃣ Local fallback hints (very conservative)
 function resolveLocalHint(query: string): string | null {
   if (query.includes('mobile') || query.includes('iphone')) return 'electronics'
   if (query.includes('shirt') || query.includes('jeans') || query.includes('shoes')) return 'apparel_fashion'
@@ -51,9 +48,9 @@ function resolveLocalHint(query: string): string | null {
   return null
 }
 
-/* ---------------------------------
-   MERCHANT CARD (DISCOVERY FIXED)
----------------------------------- */
+/* =========================================================
+   MERCHANT CARD (DISCOVERY FIXED – FINAL)
+========================================================= */
 function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }) {
   const router = useRouter()
   const isDiscovery = merchant.affiliate_wrap_type === 'discovery'
@@ -114,9 +111,9 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
   )
 }
 
-/* ---------------------------------
+/* =========================================================
    MAIN RESULTS PAGE
----------------------------------- */
+========================================================= */
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
@@ -130,33 +127,35 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (FINAL + SAFE)
+     RESOLVE SECTOR (STRICT + SAFE)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
 
-      // FLOW 1: Sector card or discovery click
+      // FLOW 1: Sector card click
       if (sectorFromUrl) {
         setSector(sectorFromUrl)
         setLoading(false)
         return
       }
 
-      // FLOW 2: Search intent
+      // FLOW 2: Search
       if (query) {
-        const unitSector = resolveByUnit(query)
-        if (unitSector) {
+        // Unit logic
+        const unit = resolveByUnit(query)
+        if (unit) {
           await supabase.from('search_logs').insert({
             raw_query: query,
-            resolved_sector: unitSector,
+            resolved_sector: unit,
             resolution_source: 'unit',
           })
-          setSector(unitSector)
+          setSector(unit)
           setLoading(false)
           return
         }
 
+        // Cooked food override
         if (hasCookedFoodSignal(query)) {
           await supabase.from('search_logs').insert({
             raw_query: query,
@@ -168,6 +167,7 @@ export default function ResultsClient() {
           return
         }
 
+        // Phrase dominance (longest keyword wins)
         const { data: keywords } = await supabase
           .from('sector_keywords')
           .select('keyword, sector')
@@ -192,6 +192,7 @@ export default function ResultsClient() {
           return
         }
 
+        // Local fallback
         const local = resolveLocalHint(query)
         if (local) {
           await supabase.from('search_logs').insert({
@@ -204,6 +205,7 @@ export default function ResultsClient() {
           return
         }
 
+        // Unmatched
         await supabase.from('search_logs').insert({
           raw_query: query,
           resolved_sector: null,
@@ -215,7 +217,7 @@ export default function ResultsClient() {
         return
       }
 
-      // FLOW 3: Browse
+      // FLOW 3: Browse (home → sector cards)
       setSector(null)
       setLoading(false)
     }
@@ -228,6 +230,7 @@ export default function ResultsClient() {
   ---------------------------------- */
   useEffect(() => {
     async function fetchMerchants() {
+      // Sector resolved
       if (sector) {
         const { data } = await supabase
           .from('affiliate_partners')
@@ -239,6 +242,7 @@ export default function ResultsClient() {
         return
       }
 
+      // Browse (no query, no sector)
       if (!query && !sectorFromUrl) {
         const { data } = await supabase
           .from('affiliate_partners')
