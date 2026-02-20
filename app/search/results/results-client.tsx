@@ -79,13 +79,14 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
 
       {isDiscovery ? (
         <button
+          type="button"
           onClick={() => {
             router.push(
-              `/search/results?q=${encodeURIComponent(query)}&sector=${merchant.sector}`
+              `/search/results?q=${encodeURIComponent(query || '')}&sector=${merchant.sector}&source=discovery`
             )
           }}
           style={{
-            background: 'transparent',
+            background: '#fff',
             border: '1px solid #111',
             padding: '8px 12px',
             borderRadius: 8,
