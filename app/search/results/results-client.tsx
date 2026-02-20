@@ -4,9 +4,6 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
-/* ---------------------------------
-   TYPES (UNCHANGED)
----------------------------------- */
 type Merchant = {
   id: string
   slug: string
@@ -17,19 +14,19 @@ type Merchant = {
 }
 
 /* ---------------------------------
-   FAST LOCAL SECTOR HINTS (UNCHANGED)
+   FAST LOCAL SECTOR HINTS (SAFE)
 ---------------------------------- */
 function resolveSectorFromQueryLocal(q: string | null) {
   if (!q) return null
   const query = q.toLowerCase()
 
   if (query.includes('iphone') || query.includes('mobile')) return 'electronics'
-  if (query.includes('shirt') || query.includes('shoes')) return 'apparel_fashion'
-  if (query.includes('grocery')) return 'grocery'
+  if (query.includes('shirt') || query.includes('jeans') || query.includes('shoes')) return 'apparel_fashion'
   if (query.includes('medicine') || query.includes('pharma')) return 'pharmacy'
-  if (query.includes('food')) return 'food'
-  if (query.includes('beauty')) return 'beauty_wellness'
-  if (query.includes('cab') || query.includes('ride')) return 'mobility'
+  if (query.includes('food') || query.includes('biryani') || query.includes('dosa')) return 'food'
+  if (query.includes('grocery')) return 'grocery'
+  if (query.includes('beauty') || query.includes('cream') || query.includes('shampoo')) return 'beauty_wellness'
+  if (query.includes('cab') || query.includes('ride') || query.includes('taxi')) return 'mobility'
 
   return null
 }
@@ -48,7 +45,8 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
         padding: 16,
         marginTop: 12,
         display: 'flex',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}
     >
       <div>
@@ -79,141 +77,141 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
 }
 
 /* ---------------------------------
-   MAIN RESULTS PAGE (FIXED & SAFE)
+   MAIN RESULTS PAGE
 ---------------------------------- */
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
 
-  // Query typed by user
-  const query = (params.get('q') || '').toLowerCase()
-
-  // Sector selected by clicking sector card
-  const sectorFromUrl = params.get('sector')
+  const rawQuery = params.get('q')
+  const query = rawQuery ? rawQuery.toLowerCase() : ''
 
   const [sector, setSector] = useState<string | null>(null)
   const [merchants, setMerchants] = useState<Merchant[]>([])
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (SAFE ORDER)
+     RESOLVE SECTOR (SAFE + LOGGING)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
-      setLoading(true)
-
-      // 1️⃣ Sector click (NO intent logic)
-      if (sectorFromUrl) {
-        setSector(sectorFromUrl)
-        return
-      }
-
-      // 2️⃣ Nothing typed
+      // CASE 1: User clicked sector card (no query)
       if (!query) {
         setSector(null)
         setLoading(false)
         return
       }
 
-      // 3️⃣ Fast local hints
-      const local = resolveSectorFromQueryLocal(query)
-      if (local) {
-        setSector(local)
+      // 1️⃣ Fast local hints
+      const localSector = resolveSectorFromQueryLocal(query)
+      if (localSector) {
+        await supabase.from('search_logs').insert({
+          raw_query: query,
+          resolved_sector: localSector,
+          resolution_source: 'local_hint'
+        })
+        setSector(localSector)
         return
       }
 
-      // 4️⃣ Supabase intent keywords
-      const { data: keywords, error } = await supabase
-        .from('intent_keywords')
+      // 2️⃣ Keyword dictionary (Supabase)
+      const { data: keywords } = await supabase
+        .from('sector_keywords')
         .select('keyword, sector')
+        .eq('is_active', true)
 
-      if (error || !keywords) {
-        setSector(null)
-        setLoading(false)
-        return
-      }
+      const found = keywords?.find(k =>
+        query.includes(k.keyword.toLowerCase())
+      )
 
-      const resolvedSector = match?.sector || null
+      const resolvedSector = found ? found.sector : null
 
-       // 🔹 LOG SEARCH (non-blocking, safe)
-       await supabase.from('search_logs').insert({
-       raw_query: query,
-       resolved_sector: resolvedSector,
-       resolution_source: match ? 'keyword' : 'unmatched'
-       })
+      // 🔹 LOG SEARCH
+      await supabase.from('search_logs').insert({
+        raw_query: query,
+        resolved_sector: resolvedSector,
+        resolution_source: found ? 'keyword' : 'unmatched'
+      })
 
-setSector(resolvedSector)
-      setLoading(false)
+      setSector(resolvedSector)
     }
 
     resolveSector()
-  }, [query, sectorFromUrl])
+  }, [query])
 
   /* ---------------------------------
-     FETCH MERCHANTS (UNCHANGED)
+     FETCH MERCHANTS
   ---------------------------------- */
   useEffect(() => {
-    if (!sector) {
-      setMerchants([])
-      setLoading(false)
-      return
-    }
+    async function fetchMerchants() {
+      // CASE 1: Sector click → show all merchants
+      if (!sector && !query) {
+        const { data } = await supabase
+          .from('affiliate_partners')
+          .select('id, slug, display_name, sector, affiliate_network, affiliate_wrap_type')
+          .eq('is_active', true)
 
-    supabase
-      .from('affiliate_partners')
-      .select('id, slug, display_name, sector, affiliate_network, affiliate_wrap_type')
-      .eq('is_active', true)
-      .eq('sector', sector)
-      .then(({ data }) => {
         setMerchants(data || [])
         setLoading(false)
-      })
-  }, [sector])
+        return
+      }
 
-  /* ---------------------------------
-     GROUP MERCHANTS
-  ---------------------------------- */
+      // CASE 2: Resolved sector
+      if (sector) {
+        const { data } = await supabase
+          .from('affiliate_partners')
+          .select('id, slug, display_name, sector, affiliate_network, affiliate_wrap_type')
+          .eq('is_active', true)
+          .eq('sector', sector)
+
+        setMerchants(data || [])
+        setLoading(false)
+        return
+      }
+
+      // CASE 3: No match
+      setMerchants([])
+      setLoading(false)
+    }
+
+    fetchMerchants()
+  }, [sector, query])
+
   const online = merchants.filter(m =>
     ['cuelinks', 'amazon', 'discovery'].includes(m.affiliate_network)
   )
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
 
-  /* ---------------------------------
-     RENDER
-  ---------------------------------- */
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: 24 }}>
       <button onClick={() => router.back()}>← Back</button>
 
-      <h1>
-        Showing results for {sector || 'search'}
+      <h1 style={{ marginTop: 16 }}>
+        {sector ? `Showing results for ${sector}` : 'Browse platforms'}
       </h1>
 
       {loading && <div>Loading…</div>}
 
-      {!loading && !sector && query && (
+      {!loading && merchants.length === 0 && (
         <div style={{ marginTop: 24, color: '#6b7280' }}>
-          No results found for “{query}”
+          No results found for this search.
         </div>
       )}
 
-      {!loading && sector && (
+      {!loading && merchants.length > 0 && (
         <>
           <h2>Online platforms</h2>
-          {online.length === 0 && <div>No online platforms available</div>}
           {online.map(m => (
             <MerchantCard key={m.id} merchant={m} query={query} />
           ))}
 
           <h2>ONDC network</h2>
-          {ondc.length === 0 && <div>Coming soon</div>}
           {ondc.map(m => (
             <MerchantCard key={m.id} merchant={m} query={query} />
           ))}
 
           <h2>Local merchants</h2>
-          {local.length === 0 && <div>Coming soon</div>}
           {local.map(m => (
             <MerchantCard key={m.id} merchant={m} query={query} />
           ))}
