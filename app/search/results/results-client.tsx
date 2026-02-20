@@ -14,6 +14,37 @@ type Merchant = {
 }
 
 /* ---------------------------------
+   UNIT-BASED SECTOR RULES (SAFE)
+---------------------------------- */
+function resolveSectorFromUnits(query: string) {
+  const q = query.toLowerCase()
+
+  // 🔴 Pharmacy units
+  if (
+    q.includes(' mg') ||
+    q.includes(' ml') ||
+    q.includes(' strip') ||
+    q.includes(' capsule')
+  ) {
+    return 'pharmacy'
+  }
+
+  // 🟢 Grocery units
+  if (
+    q.includes(' kg') ||
+    q.includes(' gram') ||
+    q.includes(' gm') ||
+    q.includes(' litre') ||
+    q.includes(' liter') ||
+    q.includes(' packet')
+  ) {
+    return 'grocery'
+  }
+
+  return null
+}
+
+/* ---------------------------------
    FAST LOCAL SECTOR HINTS (SAFE)
 ---------------------------------- */
 function resolveSectorFromQueryLocal(q: string) {
@@ -68,7 +99,6 @@ export default function ResultsClient() {
 
   const rawQuery = params.get('q') || ''
   const query = rawQuery.trim().toLowerCase()
-
   const sectorFromUrl = params.get('sector')
 
   const [sector, setSector] = useState<string | null>(null)
@@ -76,13 +106,13 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
 
   /* ---------------------------------
-     RESOLVE SECTOR (STRICT)
+     RESOLVE SECTOR (STRICT + SAFE)
   ---------------------------------- */
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
 
-      // FLOW A: Sector card click (explicit sector)
+      // FLOW A: Sector card click
       if (sectorFromUrl) {
         setSector(sectorFromUrl)
         setLoading(false)
@@ -91,6 +121,20 @@ export default function ResultsClient() {
 
       // FLOW B: Search intent
       if (query) {
+        // 0️⃣ UNIT LOGIC (highest priority)
+        const unitSector = resolveSectorFromUnits(query)
+        if (unitSector) {
+          await supabase.from('search_logs').insert({
+            raw_query: query,
+            resolved_sector: unitSector,
+            resolution_source: 'unit_rule'
+          })
+          setSector(unitSector)
+          setLoading(false)
+          return
+        }
+
+        // 1️⃣ Local hints
         const localHit = resolveSectorFromQueryLocal(query)
         if (localHit) {
           await supabase.from('search_logs').insert({
@@ -103,6 +147,7 @@ export default function ResultsClient() {
           return
         }
 
+        // 2️⃣ Keyword dictionary
         const { data: keywords } = await supabase
           .from('sector_keywords')
           .select('keyword, sector')
@@ -131,11 +176,10 @@ export default function ResultsClient() {
   }, [query, sectorFromUrl])
 
   /* ---------------------------------
-     FETCH MERCHANTS (STRICT)
+     FETCH MERCHANTS (UNCHANGED LOGIC)
   ---------------------------------- */
   useEffect(() => {
     async function fetchMerchants() {
-      // FLOW A or B: Sector resolved
       if (sector) {
         const { data } = await supabase
           .from('affiliate_partners')
@@ -147,7 +191,6 @@ export default function ResultsClient() {
         return
       }
 
-      // FLOW C: Browse only
       if (!query && !sectorFromUrl) {
         const { data } = await supabase
           .from('affiliate_partners')
@@ -158,7 +201,6 @@ export default function ResultsClient() {
         return
       }
 
-      // No match
       setMerchants([])
     }
 
