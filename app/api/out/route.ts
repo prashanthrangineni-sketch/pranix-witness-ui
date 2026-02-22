@@ -28,14 +28,37 @@ async function hashValue(value: string): Promise<string> {
     .join('')
 }
 
+/**
+ * Builds destination URL for a partner.
+ * - Cuelinks: uses ?q= (default)
+ * - Amazon direct: uses ?k= + injects Associates tag server-side
+ * Tag is NEVER stored in DB — always injected here.
+ */
+function buildDestination(
+  baseUrl: string,
+  query: string,
+  searchParamKey: string,
+  associatesTag?: string
+): string {
+  let url = query
+    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${searchParamKey}=${encodeURIComponent(query)}`
+    : baseUrl
+
+  if (associatesTag) {
+    url += `${url.includes('?') ? '&' : '?'}tag=${associatesTag}`
+  }
+
+  return url
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
 
   const merchant   = searchParams.get('m')
   const query      = searchParams.get('q') || ''
-  const snapshotId = searchParams.get('sid')  || null   // from search results page
-  const userId     = searchParams.get('uid')  || null   // logged-in user id
-  const sessionId  = searchParams.get('sess') || null   // anonymous session
+  const snapshotId = searchParams.get('sid')  || null
+  const userId     = searchParams.get('uid')  || null
+  const sessionId  = searchParams.get('sess') || null
 
   if (!merchant) {
     return new NextResponse('Missing merchant', { status: 400 })
@@ -45,7 +68,7 @@ export async function GET(request: Request) {
 
   const { data: partner } = await supabase
     .from('affiliate_partners')
-    .select('slug, display_name, sector, affiliate_base_url, affiliate_wrap_type, affiliate_network')
+    .select('slug, display_name, sector, affiliate_base_url, affiliate_wrap_type, affiliate_network, search_param_key')
     .eq('slug', merchant)
     .eq('is_active', true)
     .single()
@@ -54,42 +77,44 @@ export async function GET(request: Request) {
     return new NextResponse('Invalid merchant', { status: 400 })
   }
 
-  // ── Discovery partners — plain redirect, no tracking ─────
+  // ── Discovery — plain redirect, no tracking ───────────────────────────────
   if (partner.affiliate_wrap_type === 'discovery') {
     return NextResponse.redirect(partner.affiliate_base_url, { status: 307 })
   }
 
-  // Build destination URL (append search query if present)
-  const baseUrl     = partner.affiliate_base_url
-  const destination = query
-    ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}q=${encodeURIComponent(query)}`
-    : baseUrl
-
-  // ── Direct (Amazon short links) — redirect, no Cuelinks wrap
+  // ── Direct (Amazon) — tag injection ───────────────────────────────────────
   if (partner.affiliate_wrap_type === 'direct') {
+    const associatesTag = process.env.AMAZON_ASSOCIATES_TAG
+    if (!associatesTag) {
+      console.error('[/api/out] AMAZON_ASSOCIATES_TAG not set — blocking untagged Amazon redirect')
+      return new NextResponse('Amazon affiliate config error', { status: 500 })
+    }
+
+    const searchKey   = partner.search_param_key || 'k'
+    const destination = buildDestination(partner.affiliate_base_url, query, searchKey, associatesTag)
     return NextResponse.redirect(destination, { status: 307 })
   }
 
-  // ── Cuelinks wrap — full tracking flow ───────────────────
+  // ── Cuelinks wrap — full tracking flow ────────────────────────────────────
   const publisherId = process.env.CUELINKS_PUBLISHER_ID
   if (!publisherId) {
     console.error('[/api/out] CUELINKS_PUBLISHER_ID not set')
     return new NextResponse('Affiliate config error', { status: 500 })
   }
 
+  const searchKey   = partner.search_param_key || 'q'
+  const destination = buildDestination(partner.affiliate_base_url, query, searchKey)
+
   const clickId = generateClickId()
 
-  // Cuelinks URL with uid=clickId so conversion webhook can attribute back
   const cuelinksUrl =
     `https://linksredirect.com/?cid=${publisherId}&source=linkkit` +
     `&url=${encodeURIComponent(destination)}&uid=${encodeURIComponent(clickId)}`
 
-  // Hash IP + UA for fraud signals — no raw PII stored
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
   const ua = request.headers.get('user-agent') || 'unknown'
   const [ipHash, uaHash] = await Promise.all([hashValue(ip), hashValue(ua)])
 
-  // Persist click — fire-and-forget, never blocks the redirect
   supabase
     .from('affiliate_clicks')
     .insert({
@@ -100,7 +125,7 @@ export async function GET(request: Request) {
       destination_url:   destination,
       affiliate_url:     cuelinksUrl,
       sector:            partner.sector,
-      user_id:           userId  || null,
+      user_id:           userId     || null,
       snapshot_id:       snapshotId || null,
       session_id:        sessionId  || null,
       ip_hash:           ipHash,
