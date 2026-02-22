@@ -34,8 +34,13 @@ export async function GET(request: Request) {
     : baseUrl
 
   if (partner.affiliate_wrap_type === 'cuelinks') {
+    const publisherId = process.env.CUELINKS_PUBLISHER_ID
+    if (!publisherId) {
+      console.error('CUELINKS_PUBLISHER_ID env var not set')
+      return new NextResponse('Affiliate config error', { status: 500 })
+    }
     const cuelinksUrl =
-      `https://linksredirect.com/?cid=263419&source=linkkit&url=` +
+      `https://linksredirect.com/?cid=${publisherId}&source=linkkit&url=` +
       encodeURIComponent(destination)
 
     return NextResponse.redirect(cuelinksUrl, { status: 307 })
