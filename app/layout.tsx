@@ -6,6 +6,9 @@ import BottomNav from './components/BottomNav'
 export const metadata: Metadata = {
   title: 'Cart2Save – Best price. Every time.',
   description: 'Compare prices across platforms before you buy',
+  other: {
+    'verify-admitad': 'd5841fcc20',
+  },
 }
 
 export default function RootLayout({
