@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
-// ─── Phase 4C compliance components ──────────────────────────────────────────
+/* -----------------------------
+   COMPLIANCE COMPONENTS
+------------------------------ */
 
 function AffiliateBadge({ isAffiliate }: { isAffiliate: boolean }) {
   if (!isAffiliate) return null
@@ -23,42 +25,16 @@ function AffiliateBadge({ isAffiliate }: { isAffiliate: boolean }) {
         letterSpacing: '0.05em',
         lineHeight: 1,
       }}
-      aria-label="Affiliate link — we may earn a commission"
     >
       Ad
     </span>
   )
 }
 
-function timeAgo(isoString: string | null): string {
-  if (!isoString) return ''
-  const diffMs = Date.now() - new Date(isoString).getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  if (diffMins < 1) return 'just now'
-  if (diffMins < 60) return `${diffMins} min ago`
-  return `${Math.floor(diffMins / 60)}h ago`
-}
-
-function AmazonPriceDisclaimer({
-  affiliateNetwork,
-  priceFetchedAt,
-}: {
-  affiliateNetwork: string | null
-  priceFetchedAt: string | null
-}) {
-  if (affiliateNetwork !== 'amazon') return null
-  return (
-    <p style={{ fontSize: 11, color: '#9ca3af', margin: '4px 0 0', lineHeight: 1.3 }}>
-      Prices may vary.
-      {priceFetchedAt && <span> Price updated {timeAgo(priceFetchedAt)}.</span>}
-    </p>
-  )
-}
-
 function AmazonAssociatesDisclosure({ hasAmazonResults }: { hasAmazonResults: boolean }) {
   if (!hasAmazonResults) return null
   return (
-    <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 24, padding: '0 16px' }}>
+    <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 24 }}>
       Cart2Save is a participant in the Amazon Associates Programme
       (Associate ID: Pranix949494-21). We earn referral fees on qualifying
       purchases at no extra cost to you.
@@ -66,7 +42,9 @@ function AmazonAssociatesDisclosure({ hasAmazonResults }: { hasAmazonResults: bo
   )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+/* -----------------------------
+   TYPES
+------------------------------ */
 
 type Merchant = {
   id: string
@@ -80,26 +58,21 @@ type Merchant = {
 }
 
 /* -----------------------------
-   PRIORITY 1: UNIT LOGIC
+   RESOLUTION LOGIC
 ------------------------------ */
+
 function resolveByUnit(q: string): string | null {
   if (/\b\d+\s?(mg|ml|tablet|capsule|strip)\b/.test(q)) return 'pharmacy'
   if (/\b\d+\s?(kg|g|gram|litre|liter|packet)\b/.test(q)) return 'grocery'
   return null
 }
 
-/* -----------------------------
-   PRIORITY 2: COOKED FOOD
------------------------------- */
 function hasCookedFoodSignal(q: string): boolean {
   return [
     'curry','gravy','fry','masala','biryani','restaurant','meal','order'
   ].some(w => q.includes(w))
 }
 
-/* -----------------------------
-   PRIORITY 4: LOCAL HINTS
------------------------------- */
 function resolveLocalHint(q: string): string | null {
   if (q.includes('iphone') || q.includes('mobile')) return 'electronics'
   if (q.includes('shirt') || q.includes('jeans') || q.includes('shoes')) return 'apparel_fashion'
@@ -109,61 +82,50 @@ function resolveLocalHint(q: string): string | null {
 }
 
 /* -----------------------------
-   MERCHANT CARD (LOCKED)
+   MERCHANT CARD
 ------------------------------ */
+
 function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }) {
-  const isDiscovery = merchant.affiliate_network === 'discovery'
   const isAffiliate = ['cuelinks', 'amazon'].includes(merchant.affiliate_network)
   const isAmazon = merchant.affiliate_network === 'amazon'
+  const isDiscovery = merchant.affiliate_network === 'discovery'
 
-  if (isDiscovery) {
-    const url =
-      merchant.affiliate_base_url ||
-      merchant.website_url ||
-      '#'
-
-    return (
-      <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontWeight: 500 }}>{merchant.display_name}</div>
-          <div style={{ fontSize: 12, color: '#6b7280' }}>Discovery</div>
-        </div>
-
-        <a
-          href={url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ fontWeight: 500, textDecoration: 'none' }}
-        >
-          View →
-        </a>
-      </div>
-    )
-  }
+  const url =
+    isDiscovery
+      ? merchant.affiliate_base_url || merchant.website_url || '#'
+      : `/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`
 
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+    <div style={{
+      border: '1px solid #e5e7eb',
+      borderRadius: 12,
+      padding: 16,
+      marginTop: 12,
+      display: 'flex',
+      justifyContent: 'space-between'
+    }}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontWeight: 500 }}>{merchant.display_name}</span>
-          {/* ASCI-required Ad badge */}
           <AffiliateBadge isAffiliate={isAffiliate} />
         </div>
-        <div style={{ fontSize: 12, color: '#6b7280' }}>Affiliate partner</div>
-        {/* Amazon ToS §4: price disclaimer — renders only for amazon merchants */}
-        <AmazonPriceDisclaimer
-          affiliateNetwork={merchant.affiliate_network}
-          priceFetchedAt={null}
-        />
+        <div style={{ fontSize: 12, color: '#6b7280' }}>
+          {isDiscovery ? 'Discovery' : 'Affiliate partner'}
+        </div>
       </div>
 
       <a
-        href={`/api/out?m=${merchant.slug}&q=${encodeURIComponent(query)}`}
+        href={url}
         target={isAmazon ? '_blank' : undefined}
         rel={isAmazon ? 'noopener noreferrer sponsored' : undefined}
-        style={{ background: '#111', color: '#fff', padding: '8px 12px', borderRadius: 8, textDecoration: 'none', whiteSpace: 'nowrap' }}
+        style={{
+          background: '#111',
+          color: '#fff',
+          padding: '8px 12px',
+          borderRadius: 8,
+          textDecoration: 'none'
+        }}
       >
-        {/* Amazon brand guideline: use "Available on Amazon" for Amazon links */}
         {isAmazon ? 'Available on Amazon →' : 'View →'}
       </a>
     </div>
@@ -171,8 +133,9 @@ function MerchantCard({ merchant, query }: { merchant: Merchant; query: string }
 }
 
 /* -----------------------------
-   MAIN PAGE
+   MAIN COMPONENT
 ------------------------------ */
+
 export default function ResultsClient() {
   const router = useRouter()
   const params = useSearchParams()
@@ -186,20 +149,19 @@ export default function ResultsClient() {
   const [loading, setLoading] = useState(true)
   const [noResults, setNoResults] = useState(false)
 
-  /* -------- RESOLVE SECTOR -------- */
+  /* -------- SECTOR RESOLUTION WITH REGISTRY VALIDATION -------- */
+
   useEffect(() => {
     async function resolveSector() {
       setLoading(true)
       setNoResults(false)
 
-      if (sectorFromUrl) {
-        setSector(sectorFromUrl)
-        setLoading(false)
-        return
-      }
+      let resolved: string | null = null
 
-      if (query) {
-        let resolved =
+      if (sectorFromUrl) {
+        resolved = sectorFromUrl
+      } else if (query) {
+        resolved =
           resolveByUnit(query) ||
           (hasCookedFoodSignal(query) ? 'food' : null)
 
@@ -215,26 +177,28 @@ export default function ResultsClient() {
         }
 
         if (!resolved) resolved = resolveLocalHint(query)
-
-        await supabase.from('search_logs').insert({
-          raw_query: query,
-          resolved_sector: resolved,
-          resolution_source: resolved ? 'resolved' : 'unmatched'
-        })
-
-        if (!resolved) {
-          setNoResults(true)
-          setSector(null)
-          setLoading(false)
-          return
-        }
-
-        setSector(resolved)
-        setLoading(false)
-        return
       }
 
-      setSector(null)
+      // 🔒 VALIDATE AGAINST CANONICAL REGISTRY
+      if (resolved) {
+        const { data: registryMatch } = await supabase
+          .from('sectors_registry')
+          .select('slug')
+          .eq('slug', resolved)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (registryMatch) {
+          setSector(resolved)
+        } else {
+          setNoResults(true)
+          setSector(null)
+        }
+      } else {
+        setNoResults(true)
+        setSector(null)
+      }
+
       setLoading(false)
     }
 
@@ -242,44 +206,31 @@ export default function ResultsClient() {
   }, [query, sectorFromUrl])
 
   /* -------- FETCH MERCHANTS -------- */
+
   useEffect(() => {
     async function fetchMerchants() {
-      if (noResults) {
+      if (!sector) {
         setMerchants([])
         return
       }
 
-      if (sector) {
-        const { data } = await supabase
-          .from('affiliate_partners')
-          .select('*')
-          .eq('is_active', true)
-          .eq('sector', sector)
+      const { data } = await supabase
+        .from('affiliate_partners')
+        .select('*')
+        .eq('is_active', true)
+        .eq('sector', sector)
 
-        setMerchants(data || [])
-        return
-      }
-
-      if (!query && !sectorFromUrl) {
-        const { data } = await supabase
-          .from('affiliate_partners')
-          .select('*')
-          .eq('is_active', true)
-
-        setMerchants(data || [])
-      }
+      setMerchants(data || [])
     }
 
     fetchMerchants()
-  }, [sector, query, sectorFromUrl, noResults])
+  }, [sector])
 
   const online = merchants.filter(m =>
     ['cuelinks','amazon','discovery'].includes(m.affiliate_network)
   )
   const ondc = merchants.filter(m => m.affiliate_network === 'ondc')
   const local = merchants.filter(m => m.affiliate_network === 'local')
-
-  // Amazon ToS §3: disclosure required when Amazon results are present
   const hasAmazonResults = merchants.some(m => m.affiliate_network === 'amazon')
 
   return (
@@ -296,13 +247,7 @@ export default function ResultsClient() {
 
       {loading && <div>Loading…</div>}
 
-      {!loading && noResults && (
-        <div style={{ marginTop: 24, color: '#6b7280' }}>
-          No results found. Try a different search.
-        </div>
-      )}
-
-      {!loading && !noResults && merchants.length > 0 && (
+      {!loading && !noResults && (
         <>
           <h2>Online platforms</h2>
           {online.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
@@ -313,7 +258,6 @@ export default function ResultsClient() {
           <h2>Local merchants</h2>
           {local.map(m => <MerchantCard key={m.id} merchant={m} query={query} />)}
 
-          {/* Amazon ToS §3: Associates Programme disclosure */}
           <AmazonAssociatesDisclosure hasAmazonResults={hasAmazonResults} />
         </>
       )}
