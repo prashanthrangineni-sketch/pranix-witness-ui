@@ -10,12 +10,18 @@ export default function ResultsClient({ query }: { query: string }) {
 
     fetch(`/api/search?q=${encodeURIComponent(query)}`)
       .then((res) => res.json())
-      .then((data) => {
-        setResults(data || []);
-      });
+      .then((data) => setResults(data || []));
   }, [query]);
 
   if (!query) return <p>Please enter a search query.</p>;
+
+  const related = [
+    `${query} price`,
+    `${query} best price`,
+    `${query} buy online`,
+    `${query} near me`,
+    `${query} offers`
+  ];
 
   return (
     <div style={{ marginTop: "20px" }}>
@@ -37,6 +43,13 @@ export default function ResultsClient({ query }: { query: string }) {
           </div>
         ))
       )}
+
+      <div style={{ marginTop: "30px" }}>
+        <h3>Related Searches</h3>
+        {related.map((r, i) => (
+          <div key={i}>{r}</div>
+        ))}
+      </div>
     </div>
   );
 }
